@@ -1,0 +1,54 @@
+on: [pull_request, push]
+
+name: Tests
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Install node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 10
+
+      - name: Install ganache
+        run: npm install -g ganache-cli
+
+      - name: Install Solc
+        run: |
+            mkdir -p "$HOME/bin"
+            wget -q https://github.com/ethereum/solidity/releases/download/v0.7.6/solc-static-linux -O $HOME/bin/solc
+            chmod u+x "$HOME/bin/solc"
+            export PATH=$HOME/bin:$PATH
+            solc --version
+
+      - name: cargo test
+        run: |
+            export PATH=$HOME/bin:$PATH
+            cargo test
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+      - name: cargo clippy
+        run: cargo clippy -- -D warnings

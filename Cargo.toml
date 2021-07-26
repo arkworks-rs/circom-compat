@@ -1,0 +1,39 @@
+[package]
+name = "ark-circom"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+# WASM operations
+wasmer = "1.0.1"
+fnv = "1.0.3"
+num-traits = "0.2.0"
+num-bigint = { version = "0.4", features = ["rand"] }
+
+
+color-eyre = "0.5"
+
+# ZKP Generation
+ark-ec = "0.3.0"
+ark-ff = "0.3.0"
+ark-std = "0.3.0"
+ark-bn254 = "0.3.0"
+ark-r1cs-std = "0.3.1"
+ark-groth16 = { git = "https://github.com/kobigurk/groth16", version = "0.3.0", branch = "feat/customizable-r1cs-to-qap" }
+ark-poly = { version = "^0.3.0", default-features = false }
+ark-relations = "0.3.0"
+
+hex = "0.4.3"
+byteorder = "1.4.3"
+
+ethers = { git = "https://github.com/gakonst/ethers-rs", features = ["abigen"] }
+serde_json = "1.0.64"
+serde = "1.0.126"
+thiserror = "1.0.26"
+memmap = "0.7.0"
+ark-serialize = "0.3.0"
+
+[dev-dependencies]
+hex-literal = "0.2.1"
+tokio = { version = "1.7.1", features = ["macros"] }
+
