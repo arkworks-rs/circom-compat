@@ -1,16 +1,14 @@
-mod wasm;
-pub use wasm::WitnessCalculator;
+mod witness_calculator;
+pub use witness_calculator::WitnessCalculator;
 
 mod memory;
-pub use memory::SafeMemory;
+pub(super) use memory::SafeMemory;
 
 mod circom;
-pub use circom::CircomInstance;
+pub(super) use circom::Wasm;
 
 use fnv::FnvHasher;
 use std::hash::Hasher;
-
-pub use num_bigint::BigInt;
 
 pub(crate) fn fnv(inp: &str) -> (u32, u32) {
     let mut hasher = FnvHasher::default();

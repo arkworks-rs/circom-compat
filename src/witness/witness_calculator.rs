@@ -4,11 +4,11 @@ use num_traits::Zero;
 use std::cell::Cell;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store};
 
-use super::{fnv, CircomInstance, SafeMemory};
+use super::{fnv, SafeMemory, Wasm};
 
 #[derive(Clone, Debug)]
 pub struct WitnessCalculator {
-    pub instance: CircomInstance,
+    pub instance: Wasm,
     pub memory: SafeMemory,
     pub n64: i32,
 }
@@ -34,7 +34,7 @@ impl WitnessCalculator {
                 "log" => runtime::log_component(&store),
             }
         };
-        let instance = CircomInstance::new(Instance::new(&module, &import_object)?);
+        let instance = Wasm::new(Instance::new(&module, &import_object)?);
 
         let n32 = (instance.get_fr_len()? >> 2) - 2;
 

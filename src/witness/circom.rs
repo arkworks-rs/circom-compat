@@ -2,12 +2,11 @@ use color_eyre::Result;
 use wasmer::{Function, Instance, Value};
 
 #[derive(Clone, Debug)]
-pub struct CircomInstance(Instance);
+pub struct Wasm(Instance);
 
-// binds to the circom functions
-impl CircomInstance {
+impl Wasm {
     pub fn new(instance: Instance) -> Self {
-        CircomInstance(instance)
+        Self(instance)
     }
 
     pub fn init(&self, sanity_check: bool) -> Result<()> {
