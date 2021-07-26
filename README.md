@@ -16,6 +16,41 @@ Clone the repository and run `cd ark-circom/ && cargo doc --open`
 ark-circom = { git = "https://github.com/gakonst/ark-circom-rs" }
 ```
 
+## Example
+
+```rust
+// Load the WASM and R1CS for witness and proof generation
+let cfg = CircomConfig::<Bn254>::new(
+    "./test-vectors/mycircuit.wasm",
+    "./test-vectors/mycircuit.r1cs",
+)?;
+
+// Insert our public inputs as key value pairs
+let mut builder = CircomBuilder::new(cfg);
+builder.push_input("a", 3);
+builder.push_input("b", 11);
+
+// Create an empty instance for setting it up
+let circom = builder.setup();
+
+// Run a trusted setup
+let mut rng = thread_rng();
+let params = generate_random_parameters::<Bn254, _, _>(circom, &mut rng)?;
+
+// Get the populated instance of the circuit with the witness
+let circom = builder.build()?;
+
+let inputs = circom.get_public_inputs().unwrap();
+
+// Generate the proof
+let proof = prove(circom, &params, &mut rng)?;
+
+// Check that the proof is valid
+let pvk = prepare_verifying_key(&params.vk);
+let verified = verify_proof(&pvk, &proof, &inputs)?;
+assert!(verified);
+```
+
 ## Running the tests
 
 Tests require the following installed:
