@@ -3,7 +3,7 @@ use ark_relations::r1cs::{
     ConstraintSynthesizer, ConstraintSystemRef, LinearCombination, SynthesisError, Variable,
 };
 
-use crate::circuit::R1CS;
+use super::R1CS;
 
 use color_eyre::Result;
 
@@ -84,13 +84,13 @@ impl<E: PairingEngine> ConstraintSynthesizer<E::Fr> for CircomCircuit<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{CircomBuilder, CircuitConfig};
+    use crate::{CircomBuilder, CircomConfig};
     use ark_bn254::{Bn254, Fr};
     use ark_relations::r1cs::ConstraintSystem;
 
     #[test]
     fn satisfied() {
-        let cfg = CircuitConfig::<Bn254>::new(
+        let cfg = CircomConfig::<Bn254>::new(
             "./test-vectors/mycircuit.wasm",
             "./test-vectors/mycircuit.r1cs",
         )

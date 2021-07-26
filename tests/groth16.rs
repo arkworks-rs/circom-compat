@@ -1,4 +1,4 @@
-use ark_circom::{CircomBuilder, CircuitConfig};
+use ark_circom::{CircomBuilder, CircomConfig};
 use ark_std::rand::thread_rng;
 use color_eyre::Result;
 
@@ -9,7 +9,7 @@ use ark_groth16::{
 
 #[test]
 fn groth16_proof() -> Result<()> {
-    let cfg = CircuitConfig::<Bn254>::new(
+    let cfg = CircomConfig::<Bn254>::new(
         "./test-vectors/mycircuit.wasm",
         "./test-vectors/mycircuit.r1cs",
     )?;

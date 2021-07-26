@@ -299,7 +299,7 @@ mod tests {
     use serde_json::Value;
     use std::fs::File;
 
-    use crate::{circom_qap::R1CStoQAPCircom, CircomBuilder, CircuitConfig};
+    use crate::{circom::R1CStoQAPCircom, CircomBuilder, CircomConfig};
     use ark_groth16::{create_random_proof_with_qap as prove, prepare_verifying_key, verify_proof};
     use ark_std::rand::thread_rng;
     use num_traits::{One, Zero};
@@ -769,7 +769,7 @@ mod tests {
         let mut file = File::open(path).unwrap();
         let params = read_zkey(&mut file).unwrap(); // binfile.proving_key().unwrap();
 
-        let cfg = CircuitConfig::<Bn254>::new(
+        let cfg = CircomConfig::<Bn254>::new(
             "./test-vectors/mycircuit.wasm",
             "./test-vectors/mycircuit.r1cs",
         )

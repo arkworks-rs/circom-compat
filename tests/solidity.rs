@@ -1,6 +1,6 @@
 use ark_circom::{
     ethereum::{Inputs, Proof, VerifyingKey},
-    CircomBuilder, CircuitConfig,
+    CircomBuilder, CircomConfig,
 };
 use ark_std::rand::thread_rng;
 use color_eyre::Result;
@@ -18,7 +18,7 @@ use std::{convert::TryFrom, sync::Arc};
 
 #[tokio::test]
 async fn solidity_verifier() -> Result<()> {
-    let cfg = CircuitConfig::<Bn254>::new(
+    let cfg = CircomConfig::<Bn254>::new(
         "./test-vectors/mycircuit.wasm",
         "./test-vectors/mycircuit.r1cs",
     )?;
@@ -70,10 +70,7 @@ async fn solidity_verifier() -> Result<()> {
     Ok(())
 }
 
-abigen!(
-    Groth16Verifier,
-    "./tests/verifier_abi.json"
-);
+abigen!(Groth16Verifier, "./tests/verifier_abi.json");
 
 impl<M: Middleware> Groth16Verifier<M> {
     async fn check_proof<I: Into<Inputs>, P: Into<Proof>, VK: Into<VerifyingKey>>(

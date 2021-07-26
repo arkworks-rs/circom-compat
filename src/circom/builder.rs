@@ -6,22 +6,22 @@ use super::{CircomCircuit, R1CS};
 use num_bigint::BigInt;
 use std::collections::HashMap;
 
-use crate::{circuit::R1CSFile, WitnessCalculator};
+use crate::{circom::R1CSFile, witness::WitnessCalculator};
 use color_eyre::Result;
 
 pub struct CircomBuilder<E: PairingEngine> {
-    pub cfg: CircuitConfig<E>,
+    pub cfg: CircomConfig<E>,
     pub inputs: HashMap<String, Vec<BigInt>>,
 }
 
 // Add utils for creating this from files / directly from bytes
-pub struct CircuitConfig<E: PairingEngine> {
+pub struct CircomConfig<E: PairingEngine> {
     pub r1cs: R1CS<E>,
     pub wtns: WitnessCalculator,
     pub sanity_check: bool,
 }
 
-impl<E: PairingEngine> CircuitConfig<E> {
+impl<E: PairingEngine> CircomConfig<E> {
     pub fn new(wtns: impl AsRef<Path>, r1cs: impl AsRef<Path>) -> Result<Self> {
         let wtns = WitnessCalculator::new(wtns).unwrap();
         let reader = File::open(r1cs)?;
@@ -37,7 +37,7 @@ impl<E: PairingEngine> CircuitConfig<E> {
 impl<E: PairingEngine> CircomBuilder<E> {
     /// Instantiates a new builder using the provided WitnessGenerator and R1CS files
     /// for your circuit
-    pub fn new(cfg: CircuitConfig<E>) -> Self {
+    pub fn new(cfg: CircomConfig<E>) -> Self {
         Self {
             cfg,
             inputs: HashMap::new(),

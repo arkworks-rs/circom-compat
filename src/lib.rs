@@ -66,14 +66,12 @@
 //! Groth16 Proof verification:
 //! `snarkjs groth16 verify verification_key.json public.json proof.json`
 
-mod circom_wasm;
-pub use circom_wasm::WitnessCalculator;
+mod witness;
 
-pub mod circuit;
-pub use circuit::{CircomBuilder, CircomCircuit, CircuitConfig};
+pub mod circom;
+pub use circom::{CircomBuilder, CircomCircuit, CircomConfig, R1CStoQAPCircom};
 
 pub mod ethereum;
 
-pub mod zkey;
-
-pub mod circom_qap;
+mod zkey;
+pub use zkey::read_zkey;

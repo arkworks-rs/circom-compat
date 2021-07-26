@@ -7,7 +7,7 @@ use ark_ec::PairingEngine;
 use ark_ff::FromBytes;
 use ark_std::io::Read;
 
-use crate::circuit::{ConstraintVec, Constraints};
+use super::{ConstraintVec, Constraints};
 
 #[derive(Clone, Debug)]
 pub struct R1CS<E: PairingEngine> {
