@@ -75,11 +75,22 @@ impl<E: PairingEngine> CircomBuilder<E> {
             .wtns
             .calculate_witness(self.inputs, self.cfg.sanity_check)?;
 
+        use ark_ff::{PrimeField, FpParameters};
+        let modulus = <<E::Fr as PrimeField>::Params as FpParameters>::MODULUS;
+
         // convert it to field elements
+        use num_traits::Signed;
         let witness = witness
             .into_iter()
-            .map(|w| E::Fr::from(w.to_biguint().unwrap()))
-            .collect::<Vec<_>>();
+            .map(|w| {
+                let w = if w.sign() == num_bigint::Sign::Minus {
+                    // Need to negate the witness element if negative
+                    modulus.into() - w.abs().to_biguint().unwrap()
+                } else {
+                    w.to_biguint().unwrap()
+                };
+                E::Fr::from(w)
+            }).collect::<Vec<_>>();
         circom.witness = Some(witness);
 
         // sanity check
