@@ -1,5 +1,5 @@
 use ark_ff::PrimeField;
-use ark_groth16::r1cs_to_qap::{evaluate_constraint, QAPCalculator, R1CStoQAP};
+use ark_groth16::r1cs_to_qap::{evaluate_constraint, LibsnarkReduction, R1CStoQAP};
 use ark_poly::EvaluationDomain;
 use ark_relations::r1cs::{ConstraintSystemRef, SynthesisError};
 use ark_std::{cfg_into_iter, cfg_iter, cfg_iter_mut, vec};
@@ -10,15 +10,15 @@ use core::ops::Deref;
 /// coefficients domain. snarkjs instead precomputes the Lagrange form of the powers of tau bases
 /// in a domain twice as large and the witness map is computed as the odd coefficients of (AB-C)
 /// in that domain. This serves as HZ when computing the C proof element.
-pub struct R1CStoQAPCircom;
+pub struct CircomReduction;
 
-impl QAPCalculator for R1CStoQAPCircom {
+impl R1CStoQAP for CircomReduction {
     #[allow(clippy::type_complexity)]
     fn instance_map_with_evaluation<F: PrimeField, D: EvaluationDomain<F>>(
         cs: ConstraintSystemRef<F>,
         t: &F,
     ) -> Result<(Vec<F>, Vec<F>, Vec<F>, F, usize, usize), SynthesisError> {
-        R1CStoQAP::instance_map_with_evaluation::<F, D>(cs, t)
+        LibsnarkReduction::instance_map_with_evaluation::<F, D>(cs, t)
     }
 
     fn witness_map<F: PrimeField, D: EvaluationDomain<F>>(

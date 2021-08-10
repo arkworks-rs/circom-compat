@@ -4,7 +4,7 @@
 mod witness;
 
 pub mod circom;
-pub use circom::{CircomBuilder, CircomCircuit, CircomConfig, R1CStoQAPCircom};
+pub use circom::{CircomBuilder, CircomCircuit, CircomConfig, CircomReduction};
 
 pub mod ethereum;
 
