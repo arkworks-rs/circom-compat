@@ -86,9 +86,9 @@ impl From<&G2Affine> for G2 {
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Proof {
-    a: G1,
-    b: G2,
-    c: G1,
+    pub a: G1,
+    pub b: G2,
+    pub c: G1,
 }
 
 impl Proof {
