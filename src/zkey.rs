@@ -97,6 +97,8 @@ impl<'a, R: Read + Seek> BinFile<'a, R> {
 
     fn proving_key(&mut self) -> IoResult<ProvingKey<Bn254>> {
         let header = self.groth_header()?;
+        dbg!(&header.n_vars);
+        dbg!(&header.n_public);
         let ic = self.ic(header.n_public)?;
 
         let a_query = self.a_query(header.n_vars)?;
@@ -149,28 +151,37 @@ impl<'a, R: Read + Seek> BinFile<'a, R> {
 
         let num_coeffs: u32 = FromBytes::read(&mut self.reader)?;
         dbg!(&num_coeffs);
-        let mut coeffs = vec![];
+        use num_traits::One;
+
+        let header = self.groth_header()?;
+
+        // How do we get num_constraints?
+        let num_constraints = 1;
+
+        // insantiate AB
+        let mut matrices = vec![vec![vec![(Fr::one(), 1); num_constraints]; header.n_vars]; 2];
         for _ in 0..num_coeffs {
             let matrix: u32 = FromBytes::read(&mut self.reader)?;
             dbg!(&matrix);
             let constraint: u32 = FromBytes::read(&mut self.reader)?;
             let signal: u32 = FromBytes::read(&mut self.reader)?;
+
+            // what do we do with this?
             let value: Fq2 = deserialize_field2(&mut self.reader)?;
-
-            // constraint is row
-            // signal is column
-            coeffs.push((matrix, constraint, signal, value));
+            // what values do we set in the matrices?
+            matrices[matrix as usize][constraint as usize][signal as usize].0 = Fr::one();
+            matrices[matrix as usize][constraint as usize][signal as usize].1 += 1;
         }
-        dbg!(&coeffs);
 
-        let header = self.groth_header()?;
-
-        // How do we convert the coeffs to the a/b/c matrices?
-        let a = vec![vec![(Fr::zero(), 0); 1]];
-        let b = a.clone();
-        let c = a.clone();
 
         // This is taken from Arkworks' to_matrices() function
+        let a = matrices[0].clone();
+        let b = matrices[1].clone();
+        let domain_size = header.domain_size as usize;
+        let mut c = vec![vec![(Fr::one(), 1); domain_size]; domain_size];
+        // calculate C
+        // for i in 0..header.domain_size as usize {
+        // }
         let a_num_non_zero: usize = a.iter().map(|lc| lc.len()).sum();
         let b_num_non_zero: usize = b.iter().map(|lc| lc.len()).sum();
         let c_num_non_zero: usize = c.iter().map(|lc| lc.len()).sum();
@@ -178,8 +189,7 @@ impl<'a, R: Read + Seek> BinFile<'a, R> {
             num_instance_variables: header.n_vars,
             // How many witness variables do we have? Is this correct?
             num_witness_variables: header.n_vars - header.n_public,
-            // How do we get num_constraints?
-            num_constraints: 100,
+            num_constraints,
 
             a_num_non_zero,
             b_num_non_zero,
@@ -881,6 +891,10 @@ mod tests {
 
         let r = ark_bn254::Fr::rand(rng);
         let s = ark_bn254::Fr::rand(rng);
+
+        dbg!(Fr::one());
+        dbg!(Fr::zero());
+        dbg!(Fr::one() + Fr::one());
 
         // how do we construct the full assignment?
         let full_assignment = wtns
