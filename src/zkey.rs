@@ -26,6 +26,7 @@
 //!  PointsH(9)
 //!  Contributions(10)
 use ark_ff::{BigInteger256, FromBytes};
+use ark_relations::r1cs::ConstraintMatrices;
 use ark_serialize::{CanonicalDeserialize, SerializationError};
 use ark_std::log2;
 use byteorder::{LittleEndian, ReadBytesExt};
@@ -46,9 +47,13 @@ struct Section {
 }
 
 /// Reads a SnarkJS ZKey file into an Arkworks ProvingKey.
-pub fn read_zkey<R: Read + Seek>(reader: &mut R) -> IoResult<ProvingKey<Bn254>> {
+pub fn read_zkey<R: Read + Seek>(
+    reader: &mut R,
+) -> IoResult<(ProvingKey<Bn254>, ConstraintMatrices<Fr>)> {
     let mut binfile = BinFile::new(reader)?;
-    binfile.proving_key()
+    let proving_key = binfile.proving_key()?;
+    let matrices = binfile.matrices()?;
+    Ok((proving_key, matrices))
 }
 
 #[derive(Debug)]
@@ -137,7 +142,47 @@ impl<'a, R: Read + Seek> BinFile<'a, R> {
         self.g1_section(n_public + 1, 3)
     }
 
-    // Section 4 is the coefficients, we ignore it
+    /// Returns the [`ConstraintMatrices`] corresponding to the zkey
+    pub fn matrices(&mut self) -> IoResult<ConstraintMatrices<Fr>> {
+        let section = self.get_section(4);
+        self.reader.seek(SeekFrom::Start(section.position))?;
+
+        let num_coeffs: u32 = FromBytes::read(&mut self.reader)?;
+        let mut coeffs = vec![];
+        for _ in 0..num_coeffs {
+            let matrix: u32 = FromBytes::read(&mut self.reader)?;
+            let constraint: u32 = FromBytes::read(&mut self.reader)?;
+            let signal: u32 = FromBytes::read(&mut self.reader)?;
+            let value: Fq2 = deserialize_field2(&mut self.reader)?;
+
+            // constraint is row
+            // signal is column
+            coeffs.push((matrix, constraint, signal, value));
+        }
+
+        let header = self.groth_header()?;
+
+        // How do we convert the coeffs to the a/b/c matrices?
+        let a = vec![vec![(Fr::zero(), 0); 1]];
+        let b = a.clone();
+        let c = a.clone();
+        let matrices = ConstraintMatrices {
+            num_instance_variables: header.n_vars,
+            // How to set these?
+            num_witness_variables: header.n_vars - header.n_public,
+            num_constraints: 100,
+
+            a_num_non_zero: 0,
+            b_num_non_zero: 0,
+            c_num_non_zero: 0,
+
+            a,
+            b,
+            c,
+        };
+
+        Ok(matrices)
+    }
 
     fn a_query(&mut self, n_vars: usize) -> IoResult<Vec<G1Affine>> {
         self.g1_section(n_vars, 5)
