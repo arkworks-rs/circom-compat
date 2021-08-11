@@ -354,8 +354,12 @@ mod tests {
     use serde_json::Value;
     use std::fs::File;
 
+    use crate::witness::WitnessCalculator;
     use crate::{circom::CircomReduction, CircomBuilder, CircomConfig};
-    use ark_groth16::{create_random_proof_with_qap as prove, prepare_verifying_key, verify_proof};
+    use ark_groth16::{
+        create_proof_with_qap_and_matrices, create_random_proof_with_reduction as prove,
+        prepare_verifying_key, verify_proof,
+    };
     use ark_std::rand::thread_rng;
     use num_traits::{One, Zero};
     use std::str::FromStr;
@@ -819,7 +823,7 @@ mod tests {
     }
 
     #[test]
-    fn verify_proof_with_zkey() {
+    fn verify_proof_with_zkey_with_r1cs() {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
         let (params, matrices) = read_zkey(&mut file).unwrap(); // binfile.proving_key().unwrap();
@@ -843,6 +847,51 @@ mod tests {
         let pvk = prepare_verifying_key(&params.vk);
 
         let verified = verify_proof(&pvk, &proof, &inputs).unwrap();
+
+        assert!(verified);
+    }
+
+    #[test]
+    fn verify_proof_with_zkey_without_r1cs() {
+        let path = "./test-vectors/test.zkey";
+        let mut file = File::open(path).unwrap();
+        let (params, matrices) = read_zkey(&mut file).unwrap();
+
+        let mut wtns = WitnessCalculator::new("./test-vectors/mycircuit.wasm").unwrap();
+        let mut inputs: HashMap<String, Vec<num_bigint::BigInt>> = HashMap::new();
+        let values = inputs.entry("a".to_string()).or_insert_with(Vec::new);
+        values.push(3.into());
+
+        let values = inputs.entry("b".to_string()).or_insert_with(Vec::new);
+        values.push(11.into());
+
+        let mut rng = thread_rng();
+        use ark_std::UniformRand;
+        let num_inputs = matrices.num_instance_variables;
+        let num_constraints = matrices.num_constraints;
+        let rng = &mut rng;
+
+        let r = ark_bn254::Fr::rand(rng);
+        let s = ark_bn254::Fr::rand(rng);
+
+        // how do we construct the full assignment?
+        let full_assignment = wtns
+            .calculate_witness_element::<Bn254, _>(inputs, false)
+            .unwrap();
+        let proof = create_proof_with_qap_and_matrices::<_, CircomReduction>(
+            &params,
+            r,
+            s,
+            &matrices,
+            num_inputs,
+            num_constraints,
+            full_assignment.as_slice(),
+        )
+        .unwrap();
+
+        let pvk = prepare_verifying_key(&params.vk);
+        let inputs = &full_assignment[..num_inputs];
+        let verified = verify_proof(&pvk, &proof, inputs).unwrap();
 
         assert!(verified);
     }

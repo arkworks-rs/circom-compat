@@ -92,6 +92,36 @@ impl WitnessCalculator {
         Ok(w)
     }
 
+    pub fn calculate_witness_element<
+        E: ark_ec::PairingEngine,
+        I: IntoIterator<Item = (String, Vec<BigInt>)>,
+    >(
+        &mut self,
+        inputs: I,
+        sanity_check: bool,
+    ) -> Result<Vec<E::Fr>> {
+        use ark_ff::{FpParameters, PrimeField};
+        let witness = self.calculate_witness(inputs, sanity_check)?;
+        let modulus = <<E::Fr as PrimeField>::Params as FpParameters>::MODULUS;
+
+        // convert it to field elements
+        use num_traits::Signed;
+        let witness = witness
+            .into_iter()
+            .map(|w| {
+                let w = if w.sign() == num_bigint::Sign::Minus {
+                    // Need to negate the witness element if negative
+                    modulus.into() - w.abs().to_biguint().unwrap()
+                } else {
+                    w.to_biguint().unwrap()
+                };
+                E::Fr::from(w)
+            })
+            .collect::<Vec<_>>();
+
+        Ok(witness)
+    }
+
     pub fn get_witness_buffer(&self) -> Result<Vec<u8>> {
         let ptr = self.instance.get_ptr_witness_buffer()? as usize;
 
