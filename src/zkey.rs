@@ -35,7 +35,7 @@ use std::{
     io::{Read, Result as IoResult, Seek, SeekFrom},
 };
 
-use ark_bn254::{Bn254, Fq, Fq2, G1Affine, G2Affine};
+use ark_bn254::{Bn254, Fq, Fq2, Fr, G1Affine, G2Affine};
 use ark_groth16::{ProvingKey, VerifyingKey};
 use num_traits::Zero;
 
@@ -264,6 +264,12 @@ fn deserialize_field<R: Read>(reader: &mut R) -> IoResult<Fq> {
     Ok(Fq::new(bigint))
 }
 
+pub fn deserialize_field2<R: Read>(reader: &mut R) -> IoResult<Fq2> {
+    let c0 = deserialize_field(reader)?;
+    let c1 = deserialize_field(reader)?;
+    Ok(Fq2::new(c0, c1))
+}
+
 fn deserialize_g1<R: Read>(reader: &mut R) -> IoResult<G1Affine> {
     let x = deserialize_field(reader)?;
     let y = deserialize_field(reader)?;
@@ -272,13 +278,8 @@ fn deserialize_g1<R: Read>(reader: &mut R) -> IoResult<G1Affine> {
 }
 
 fn deserialize_g2<R: Read>(reader: &mut R) -> IoResult<G2Affine> {
-    let c0 = deserialize_field(reader)?;
-    let c1 = deserialize_field(reader)?;
-    let f1 = Fq2::new(c0, c1);
-
-    let c0 = deserialize_field(reader)?;
-    let c1 = deserialize_field(reader)?;
-    let f2 = Fq2::new(c0, c1);
+    let f1 = deserialize_field2(reader)?;
+    let f2 = deserialize_field2(reader)?;
     let infinity = f1.is_zero() && f2.is_zero();
     Ok(G2Affine::new(f1, f2, infinity))
 }
