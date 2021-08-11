@@ -152,6 +152,7 @@ impl<'a, R: Read + Seek> BinFile<'a, R> {
         let mut coeffs = vec![];
         for _ in 0..num_coeffs {
             let matrix: u32 = FromBytes::read(&mut self.reader)?;
+            dbg!(&matrix);
             let constraint: u32 = FromBytes::read(&mut self.reader)?;
             let signal: u32 = FromBytes::read(&mut self.reader)?;
             let value: Fq2 = deserialize_field2(&mut self.reader)?;
@@ -168,15 +169,21 @@ impl<'a, R: Read + Seek> BinFile<'a, R> {
         let a = vec![vec![(Fr::zero(), 0); 1]];
         let b = a.clone();
         let c = a.clone();
+
+        // This is taken from Arkworks' to_matrices() function
+        let a_num_non_zero: usize = a.iter().map(|lc| lc.len()).sum();
+        let b_num_non_zero: usize = b.iter().map(|lc| lc.len()).sum();
+        let c_num_non_zero: usize = c.iter().map(|lc| lc.len()).sum();
         let matrices = ConstraintMatrices {
             num_instance_variables: header.n_vars,
-            // How to set these?
+            // How many witness variables do we have? Is this correct?
             num_witness_variables: header.n_vars - header.n_public,
+            // How do we get num_constraints?
             num_constraints: 100,
 
-            a_num_non_zero: 0,
-            b_num_non_zero: 0,
-            c_num_non_zero: 0,
+            a_num_non_zero,
+            b_num_non_zero,
+            c_num_non_zero,
 
             a,
             b,
