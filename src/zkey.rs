@@ -148,6 +148,7 @@ impl<'a, R: Read + Seek> BinFile<'a, R> {
         self.reader.seek(SeekFrom::Start(section.position))?;
 
         let num_coeffs: u32 = FromBytes::read(&mut self.reader)?;
+        dbg!(&num_coeffs);
         let mut coeffs = vec![];
         for _ in 0..num_coeffs {
             let matrix: u32 = FromBytes::read(&mut self.reader)?;
@@ -159,6 +160,7 @@ impl<'a, R: Read + Seek> BinFile<'a, R> {
             // signal is column
             coeffs.push((matrix, constraint, signal, value));
         }
+        dbg!(&coeffs);
 
         let header = self.groth_header()?;
 
@@ -512,7 +514,7 @@ mod tests {
     fn deser_key() {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
-        let params = read_zkey(&mut file).unwrap();
+        let (params, matrices) = read_zkey(&mut file).unwrap();
 
         // Check IC
         let expected = vec![
@@ -732,7 +734,7 @@ mod tests {
     fn deser_vk() {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
-        let params = read_zkey(&mut file).unwrap();
+        let (params, matrices) = read_zkey(&mut file).unwrap();
 
         let json = std::fs::read_to_string("./test-vectors/verification_key.json").unwrap();
         let json: Value = serde_json::from_str(&json).unwrap();
@@ -813,7 +815,7 @@ mod tests {
     fn verify_proof_with_zkey() {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
-        let params = read_zkey(&mut file).unwrap(); // binfile.proving_key().unwrap();
+        let (params, matrices) = read_zkey(&mut file).unwrap(); // binfile.proving_key().unwrap();
 
         let cfg = CircomConfig::<Bn254>::new(
             "./test-vectors/mycircuit.wasm",
