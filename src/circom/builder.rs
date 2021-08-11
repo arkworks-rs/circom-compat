@@ -77,7 +77,7 @@ impl<E: PairingEngine> CircomBuilder<E> {
             .wtns
             .calculate_witness(self.inputs, self.cfg.sanity_check)?;
 
-        use ark_ff::{PrimeField, FpParameters};
+        use ark_ff::{FpParameters, PrimeField};
         let modulus = <<E::Fr as PrimeField>::Params as FpParameters>::MODULUS;
 
         // convert it to field elements
@@ -92,7 +92,8 @@ impl<E: PairingEngine> CircomBuilder<E> {
                     w.to_biguint().unwrap()
                 };
                 E::Fr::from(w)
-            }).collect::<Vec<_>>();
+            })
+            .collect::<Vec<_>>();
         circom.witness = Some(witness);
 
         // sanity check
