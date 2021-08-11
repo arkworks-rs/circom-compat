@@ -522,6 +522,14 @@ mod tests {
     }
 
     #[test]
+    fn matrices_ok() {
+        let path = "./test-vectors/test.zkey";
+        let mut file = File::open(path).unwrap();
+        let (params, matrices) = read_zkey(&mut file).unwrap();
+        dbg!(&matrices);
+    }
+
+    #[test]
     fn deser_key() {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
