@@ -35,7 +35,7 @@ use std::{
     io::{Read, Result as IoResult, Seek, SeekFrom},
 };
 
-use ark_bn254::{Bn254, Fq, Fq2, Fr, G1Affine, G2Affine};
+use ark_bn254::{Bn254, Fq, Fq2, G1Affine, G2Affine};
 use ark_groth16::{ProvingKey, VerifyingKey};
 use num_traits::Zero;
 

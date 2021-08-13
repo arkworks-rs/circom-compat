@@ -115,19 +115,19 @@ mod runtime {
         #[allow(unused)]
         #[allow(clippy::many_single_char_names)]
         fn func(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32) {}
-        Function::new_native(&store, func)
+        Function::new_native(store, func)
     }
 
     pub fn log_signal(store: &Store) -> Function {
         #[allow(unused)]
         fn func(a: i32, b: i32) {}
-        Function::new_native(&store, func)
+        Function::new_native(store, func)
     }
 
     pub fn log_component(store: &Store) -> Function {
         #[allow(unused)]
         fn func(a: i32) {}
-        Function::new_native(&store, func)
+        Function::new_native(store, func)
     }
 }
 
