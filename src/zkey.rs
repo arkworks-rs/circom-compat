@@ -301,7 +301,9 @@ mod tests {
     use std::fs::File;
 
     use crate::{circom::CircomReduction, CircomBuilder, CircomConfig};
-    use ark_groth16::{create_random_proof_with_reduction as prove, prepare_verifying_key, verify_proof};
+    use ark_groth16::{
+        create_random_proof_with_reduction as prove, prepare_verifying_key, verify_proof,
+    };
     use ark_std::rand::thread_rng;
     use num_traits::{One, Zero};
     use std::str::FromStr;
