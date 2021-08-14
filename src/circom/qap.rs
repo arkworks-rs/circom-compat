@@ -49,6 +49,14 @@ impl R1CStoQAP for CircomReduction {
             a[start..end].clone_from_slice(&full_assignment[..num_inputs]);
         }
 
+        let mut c = vec![zero; domain_size];
+        cfg_iter_mut!(c[..num_constraints])
+            .zip(&a)
+            .zip(&b)
+            .for_each(|((c_i, &a), &b)| {
+                *c_i = a * b;
+            });
+
         domain.ifft_in_place(&mut a);
         domain.ifft_in_place(&mut b);
 
@@ -67,13 +75,6 @@ impl R1CStoQAP for CircomReduction {
         let mut ab = domain.mul_polynomials_in_evaluation_domain(&a, &b);
         drop(a);
         drop(b);
-
-        let mut c = vec![zero; domain_size];
-        cfg_iter_mut!(c[..num_constraints])
-            .enumerate()
-            .for_each(|(i, c)| {
-                *c = evaluate_constraint(&matrices.c[i], &full_assignment);
-            });
 
         domain.ifft_in_place(&mut c);
         D::distribute_powers_and_mul_by_const(&mut c, root_of_unity, F::one());
