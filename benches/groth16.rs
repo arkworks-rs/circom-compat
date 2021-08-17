@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion, black_box};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use ark_circom::{read_zkey, CircomReduction, WitnessCalculator};
 use ark_std::rand::thread_rng;
@@ -57,16 +57,18 @@ fn groth(c: &mut Criterion) {
 
     c.bench_function("groth proof", |b| {
         b.iter(|| {
-            black_box(create_proof_with_qap_and_matrices::<_, CircomReduction>(
-                &params,
-                r,
-                s,
-                &matrices,
-                num_inputs,
-                num_constraints,
-                full_assignment.as_slice(),
-            )
-            .unwrap());
+            black_box(
+                create_proof_with_qap_and_matrices::<_, CircomReduction>(
+                    &params,
+                    r,
+                    s,
+                    &matrices,
+                    num_inputs,
+                    num_constraints,
+                    full_assignment.as_slice(),
+                )
+                .unwrap(),
+            );
         })
     });
 }
