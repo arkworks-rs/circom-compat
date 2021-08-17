@@ -526,18 +526,10 @@ mod tests {
     }
 
     #[test]
-    fn matrices_ok() {
-        let path = "./test-vectors/test.zkey";
-        let mut file = File::open(path).unwrap();
-        let (params, matrices) = read_zkey(&mut file).unwrap();
-        dbg!(&matrices);
-    }
-
-    #[test]
     fn deser_key() {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
-        let (params, matrices) = read_zkey(&mut file).unwrap();
+        let (params, _matrices) = read_zkey(&mut file).unwrap();
 
         // Check IC
         let expected = vec![
@@ -757,7 +749,7 @@ mod tests {
     fn deser_vk() {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
-        let (params, matrices) = read_zkey(&mut file).unwrap();
+        let (params, _matrices) = read_zkey(&mut file).unwrap();
 
         let json = std::fs::read_to_string("./test-vectors/verification_key.json").unwrap();
         let json: Value = serde_json::from_str(&json).unwrap();
@@ -838,7 +830,7 @@ mod tests {
     fn verify_proof_with_zkey_with_r1cs() {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
-        let (params, matrices) = read_zkey(&mut file).unwrap(); // binfile.proving_key().unwrap();
+        let (params, _matrices) = read_zkey(&mut file).unwrap(); // binfile.proving_key().unwrap();
 
         let cfg = CircomConfig::<Bn254>::new(
             "./test-vectors/mycircuit.wasm",
