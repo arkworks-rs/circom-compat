@@ -15,7 +15,7 @@ ark-ec = { version = "0.3.0", default-features = false, features = ["parallel"] 
 ark-ff = { version = "0.3.0", default-features = false, features = ["parallel", "asm"] }
 ark-std = { version = "0.3.0", default-features = false, features = ["parallel"] }
 ark-bn254 = { version = "0.3.0" }
-ark-groth16 = { git = "https://github.com/kobigurk/groth16", version = "0.3.0", branch = "feat/customizable-r1cs-to-qap", features = ["parallel"] }
+ark-groth16 = { git = "https://github.com/gakonst/groth16", version = "0.3.0", branch = "calculate-matrices", features = ["parallel"] }
 ark-poly = { version = "^0.3.0", default-features = false, features = ["parallel"] }
 ark-relations = { version = "0.3.0", default-features = false }
 ark-serialize = { version = "0.3.0", default-features = false }

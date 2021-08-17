@@ -2,8 +2,9 @@
 //! Solidity Groth16 Verifier smart contracts
 use ark_ff::{BigInteger, FromBytes, PrimeField};
 use ethers_core::types::U256;
+use num_traits::Zero;
 
-use ark_bn254::{Bn254, Fq2, Fr, G1Affine, G2Affine};
+use ark_bn254::{Bn254, Fq, Fq2, Fr, G1Affine, G2Affine};
 
 pub struct Inputs(pub Vec<U256>);
 
@@ -23,9 +24,10 @@ pub struct G1 {
 
 impl From<G1> for G1Affine {
     fn from(src: G1) -> G1Affine {
-        let x = u256_to_point(src.x);
-        let y = u256_to_point(src.y);
-        G1Affine::new(x, y, false)
+        let x: Fq = u256_to_point(src.x);
+        let y: Fq = u256_to_point(src.y);
+        let inf = x.is_zero() && y.is_zero();
+        G1Affine::new(x, y, inf)
     }
 }
 
@@ -62,7 +64,8 @@ impl From<G2> for G2Affine {
         let c1 = u256_to_point(src.y[1]);
         let y = Fq2::new(c0, c1);
 
-        G2Affine::new(x, y, false)
+        let inf = x.is_zero() && y.is_zero();
+        G2Affine::new(x, y, inf)
     }
 }
 
@@ -86,9 +89,9 @@ impl From<&G2Affine> for G2 {
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Proof {
-    a: G1,
-    b: G2,
-    c: G1,
+    pub a: G1,
+    pub b: G2,
+    pub c: G1,
 }
 
 impl Proof {

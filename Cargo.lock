@@ -181,7 +181,7 @@ dependencies = [
 [[package]]
 name = "ark-groth16"
 version = "0.3.0"
-source = "git+https://github.com/kobigurk/groth16?branch=feat/customizable-r1cs-to-qap#a3c4783f879fefeebbaf60caf5e50e9488243c63"
+source = "git+https://github.com/gakonst/groth16?branch=calculate-matrices#2b3ed6ed0ef7dfaab2e7dc5ab64f7d2abb20887f"
 dependencies = [
  "ark-crypto-primitives",
  "ark-ec",
