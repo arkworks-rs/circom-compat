@@ -25,7 +25,8 @@
 //!  PointsC(8)
 //!  PointsH(9)
 //!  Contributions(10)
-use ark_ff::{BigInteger256, FromBytes};
+use ark_ff::{BigInteger256, FromBytes, PrimeField};
+use ark_relations::r1cs::ConstraintMatrices;
 use ark_serialize::{CanonicalDeserialize, SerializationError};
 use ark_std::log2;
 use byteorder::{LittleEndian, ReadBytesExt};
@@ -35,7 +36,7 @@ use std::{
     io::{Read, Result as IoResult, Seek, SeekFrom},
 };
 
-use ark_bn254::{Bn254, Fq, Fq2, G1Affine, G2Affine};
+use ark_bn254::{Bn254, Fq, Fq2, Fr, G1Affine, G2Affine};
 use ark_groth16::{ProvingKey, VerifyingKey};
 use num_traits::Zero;
 
@@ -46,9 +47,13 @@ struct Section {
 }
 
 /// Reads a SnarkJS ZKey file into an Arkworks ProvingKey.
-pub fn read_zkey<R: Read + Seek>(reader: &mut R) -> IoResult<ProvingKey<Bn254>> {
+pub fn read_zkey<R: Read + Seek>(
+    reader: &mut R,
+) -> IoResult<(ProvingKey<Bn254>, ConstraintMatrices<Fr>)> {
     let mut binfile = BinFile::new(reader)?;
-    binfile.proving_key()
+    let proving_key = binfile.proving_key()?;
+    let matrices = binfile.matrices()?;
+    Ok((proving_key, matrices))
 }
 
 #[derive(Debug)]
@@ -137,7 +142,53 @@ impl<'a, R: Read + Seek> BinFile<'a, R> {
         self.g1_section(n_public + 1, 3)
     }
 
-    // Section 4 is the coefficients, we ignore it
+    /// Returns the [`ConstraintMatrices`] corresponding to the zkey
+    pub fn matrices(&mut self) -> IoResult<ConstraintMatrices<Fr>> {
+        let header = self.groth_header()?;
+
+        let section = self.get_section(4);
+        self.reader.seek(SeekFrom::Start(section.position))?;
+        let num_coeffs: u32 = self.reader.read_u32::<LittleEndian>()?;
+
+        // insantiate AB
+        let mut matrices = vec![vec![vec![]; header.domain_size as usize]; 2];
+        let mut max_constraint_index = 0;
+        for _ in 0..num_coeffs {
+            let matrix: u32 = self.reader.read_u32::<LittleEndian>()?;
+            let constraint: u32 = self.reader.read_u32::<LittleEndian>()?;
+            let signal: u32 = self.reader.read_u32::<LittleEndian>()?;
+
+            let value: Fr = deserialize_field_fr(&mut self.reader)?;
+            max_constraint_index = std::cmp::max(max_constraint_index, constraint);
+            matrices[matrix as usize][constraint as usize].push((value, signal as usize));
+        }
+
+        let num_constraints = max_constraint_index as usize - header.n_public;
+        // Remove the public input constraints, Arkworks adds them later
+        matrices.iter_mut().for_each(|m| {
+            m.truncate(num_constraints);
+        });
+        // This is taken from Arkworks' to_matrices() function
+        let a = matrices[0].clone();
+        let b = matrices[1].clone();
+        let a_num_non_zero: usize = a.iter().map(|lc| lc.len()).sum();
+        let b_num_non_zero: usize = b.iter().map(|lc| lc.len()).sum();
+        let matrices = ConstraintMatrices {
+            num_instance_variables: header.n_public + 1,
+            num_witness_variables: header.n_vars - header.n_public,
+            num_constraints,
+
+            a_num_non_zero,
+            b_num_non_zero,
+            c_num_non_zero: 0,
+
+            a,
+            b,
+            c: vec![],
+        };
+
+        Ok(matrices)
+    }
 
     fn a_query(&mut self, n_vars: usize) -> IoResult<Vec<G1Affine>> {
         self.g1_section(n_vars, 5)
@@ -257,6 +308,13 @@ impl HeaderGroth {
     }
 }
 
+// need to divide by R, since snarkjs outputs the zkey with coefficients
+// multiplieid by R^2
+fn deserialize_field_fr<R: Read>(reader: &mut R) -> IoResult<Fr> {
+    let bigint = BigInteger256::read(reader)?;
+    Ok(Fr::new(Fr::new(bigint).into_repr()))
+}
+
 // skips the multiplication by R because Circom points are already in Montgomery form
 fn deserialize_field<R: Read>(reader: &mut R) -> IoResult<Fq> {
     let bigint = BigInteger256::read(reader)?;
@@ -300,9 +358,11 @@ mod tests {
     use serde_json::Value;
     use std::fs::File;
 
+    use crate::witness::WitnessCalculator;
     use crate::{circom::CircomReduction, CircomBuilder, CircomConfig};
     use ark_groth16::{
-        create_random_proof_with_reduction as prove, prepare_verifying_key, verify_proof,
+        create_proof_with_qap_and_matrices, create_random_proof_with_reduction as prove,
+        prepare_verifying_key, verify_proof,
     };
     use ark_std::rand::thread_rng;
     use num_traits::{One, Zero};
@@ -469,7 +529,7 @@ mod tests {
     fn deser_key() {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
-        let params = read_zkey(&mut file).unwrap();
+        let (params, _matrices) = read_zkey(&mut file).unwrap();
 
         // Check IC
         let expected = vec![
@@ -689,7 +749,7 @@ mod tests {
     fn deser_vk() {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
-        let params = read_zkey(&mut file).unwrap();
+        let (params, _matrices) = read_zkey(&mut file).unwrap();
 
         let json = std::fs::read_to_string("./test-vectors/verification_key.json").unwrap();
         let json: Value = serde_json::from_str(&json).unwrap();
@@ -767,10 +827,10 @@ mod tests {
     }
 
     #[test]
-    fn verify_proof_with_zkey() {
+    fn verify_proof_with_zkey_with_r1cs() {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
-        let params = read_zkey(&mut file).unwrap(); // binfile.proving_key().unwrap();
+        let (params, _matrices) = read_zkey(&mut file).unwrap(); // binfile.proving_key().unwrap();
 
         let cfg = CircomConfig::<Bn254>::new(
             "./test-vectors/mycircuit.wasm",
@@ -791,6 +851,50 @@ mod tests {
         let pvk = prepare_verifying_key(&params.vk);
 
         let verified = verify_proof(&pvk, &proof, &inputs).unwrap();
+
+        assert!(verified);
+    }
+
+    #[test]
+    fn verify_proof_with_zkey_without_r1cs() {
+        let path = "./test-vectors/test.zkey";
+        let mut file = File::open(path).unwrap();
+        let (params, matrices) = read_zkey(&mut file).unwrap();
+
+        let mut wtns = WitnessCalculator::new("./test-vectors/mycircuit.wasm").unwrap();
+        let mut inputs: HashMap<String, Vec<num_bigint::BigInt>> = HashMap::new();
+        let values = inputs.entry("a".to_string()).or_insert_with(Vec::new);
+        values.push(3.into());
+
+        let values = inputs.entry("b".to_string()).or_insert_with(Vec::new);
+        values.push(11.into());
+
+        let mut rng = thread_rng();
+        use ark_std::UniformRand;
+        let num_inputs = matrices.num_instance_variables;
+        let num_constraints = matrices.num_constraints;
+        let rng = &mut rng;
+
+        let r = ark_bn254::Fr::rand(rng);
+        let s = ark_bn254::Fr::rand(rng);
+
+        let full_assignment = wtns
+            .calculate_witness_element::<Bn254, _>(inputs, false)
+            .unwrap();
+        let proof = create_proof_with_qap_and_matrices::<_, CircomReduction>(
+            &params,
+            r,
+            s,
+            &matrices,
+            num_inputs,
+            num_constraints,
+            full_assignment.as_slice(),
+        )
+        .unwrap();
+
+        let pvk = prepare_verifying_key(&params.vk);
+        let inputs = &full_assignment[1..num_inputs];
+        let verified = verify_proof(&pvk, &proof, inputs).unwrap();
 
         assert!(verified);
     }
