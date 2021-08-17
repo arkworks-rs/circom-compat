@@ -39,8 +39,8 @@ impl R1CStoQAP for CircomReduction {
             .zip(cfg_iter!(&matrices.a))
             .zip(cfg_iter!(&matrices.b))
             .for_each(|(((a, b), at_i), bt_i)| {
-                *a = evaluate_constraint(at_i, &full_assignment);
-                *b = evaluate_constraint(bt_i, &full_assignment);
+                *a = evaluate_constraint(at_i, full_assignment);
+                *b = evaluate_constraint(bt_i, full_assignment);
             });
 
         {
