@@ -9,7 +9,7 @@ use ark_groth16::{create_proof_with_qap_and_matrices, prepare_verifying_key, ver
 use std::{collections::HashMap, fs::File};
 
 fn groth(c: &mut Criterion) {
-    let path = "./test-vectors/test.zkey";
+    let path = "./test-vectors/complex.zkey";
     let mut file = File::open(path).unwrap();
     let (params, matrices) = read_zkey(&mut file).unwrap();
     let num_inputs = matrices.num_instance_variables;
@@ -26,7 +26,7 @@ fn groth(c: &mut Criterion) {
         inputs
     };
 
-    let mut wtns = WitnessCalculator::new("./test-vectors/mycircuit.wasm").unwrap();
+    let mut wtns = WitnessCalculator::new("./test-vectors/complex-circuit.wasm").unwrap();
     let full_assignment = wtns
         .calculate_witness_element::<Bn254, _>(inputs, false)
         .unwrap();
