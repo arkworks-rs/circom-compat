@@ -3,6 +3,9 @@ name = "ark-circom"
 version = "0.1.0"
 edition = "2018"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 # WASM operations
 wasmer = { git = "https://github.com/wasmerio/wasmer" }
