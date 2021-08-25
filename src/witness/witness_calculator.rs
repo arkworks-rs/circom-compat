@@ -34,7 +34,7 @@ impl WitnessCalculator {
                 "log" => runtime::log_component(&store),
             }
         };
-        let instance = Wasm::new(Instance::new(&module, &import_object)?);
+        let instance = Wasm::new(Instance::new(&module, &import_object).unwrap());
 
         let n32 = (instance.get_fr_len()? >> 2) - 2;
 
