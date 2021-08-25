@@ -5,15 +5,15 @@ edition = "2018"
 
 [dependencies]
 # WASM operations
-wasmer = { version = "2.0" }
+wasmer = { git = "https://github.com/wasmerio/wasmer" }
 fnv = { version = "1.0.3", default-features = false }
 num-traits = { version = "0.2.0", default-features = false }
 num-bigint = { version = "0.4", default-features = false, features = ["rand"] }
 
 # ZKP Generation
 ark-ec = { version = "0.3.0", default-features = false, features = ["parallel"] }
-ark-ff = { version = "0.3.0", default-features = false, features = ["asm", "parallel"] }
-ark-std = { version = "0.3.0", default-features = false }
+ark-ff = { version = "0.3.0", default-features = false, features = ["parallel", "asm"] }
+ark-std = { version = "0.3.0", default-features = false, features = ["parallel"] }
 ark-bn254 = { version = "0.3.0" }
 ark-groth16 = { git = "https://github.com/gakonst/groth16", version = "0.3.0", branch = "calculate-matrices", features = ["parallel"] }
 ark-poly = { version = "^0.3.0", default-features = false, features = ["parallel"] }
@@ -30,6 +30,7 @@ ethers-core = { git = "https://github.com/gakonst/ethers-rs", default-features =
 # error handling
 thiserror = "1.0.26"
 color-eyre = "0.5"
+criterion = "0.3.4"
 
 [dev-dependencies]
 hex-literal = "0.2.1"
