@@ -11,7 +11,10 @@ use std::{collections::HashMap, fs::File};
 fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
     let i = num_validators;
     let j = num_constraints;
-    let path = format!("./test-vectors/complex-circuit/complex-circuit-{}-{}.zkey", i, j);
+    let path = format!(
+        "./test-vectors/complex-circuit/complex-circuit-{}-{}.zkey",
+        i, j
+    );
     let mut file = File::open(&path).unwrap();
     let (params, matrices) = read_zkey(&mut file).unwrap();
     let num_inputs = matrices.num_instance_variables;
@@ -25,7 +28,11 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
         inputs
     };
 
-    let mut wtns = WitnessCalculator::new(&format!("./test-vectors/complex-circuit/complex-circuit-{}-{}.wasm", i ,j)).unwrap();
+    let mut wtns = WitnessCalculator::new(&format!(
+        "./test-vectors/complex-circuit/complex-circuit-{}-{}.wasm",
+        i, j
+    ))
+    .unwrap();
     let full_assignment = wtns
         .calculate_witness_element::<Bn254, _>(inputs, false)
         .unwrap();
@@ -46,7 +53,7 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
         num_constraints,
         full_assignment.as_slice(),
     )
-        .unwrap();
+    .unwrap();
 
     let pvk = prepare_verifying_key(&params.vk);
     let inputs = &full_assignment[1..num_inputs];
@@ -66,7 +73,7 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
                     num_constraints,
                     full_assignment.as_slice(),
                 )
-                    .unwrap(),
+                .unwrap(),
             );
         })
     });
