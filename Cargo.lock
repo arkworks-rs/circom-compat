@@ -89,6 +89,7 @@ dependencies = [
  "ark-serialize",
  "ark-std",
  "byteorder",
+ "cfg-if",
  "color-eyre",
  "criterion",
  "ethers",

@@ -37,7 +37,11 @@ hex-literal = "0.2.1"
 tokio = { version = "1.7.1", features = ["macros"] }
 serde_json = "1.0.64"
 ethers = { git = "https://github.com/gakonst/ethers-rs", features = ["abigen"] }
+cfg-if = "1.0"
 
 [[bench]]
 name = "groth16"
 harness = false
+
+[features]
+bench-complex-all = []
