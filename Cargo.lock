@@ -89,6 +89,7 @@ dependencies = [
  "ark-serialize",
  "ark-std",
  "byteorder",
+ "cfg-if",
  "color-eyre",
  "criterion",
  "ethers",
@@ -181,7 +182,7 @@ dependencies = [
 [[package]]
 name = "ark-groth16"
 version = "0.3.0"
-source = "git+https://github.com/gakonst/groth16?branch=calculate-matrices#2b3ed6ed0ef7dfaab2e7dc5ab64f7d2abb20887f"
+source = "git+https://github.com/arkworks-rs/groth16?rev=765817f#765817f77a6e14964c6f264d565b18676b11bd59"
 dependencies = [
  "ark-crypto-primitives",
  "ark-ec",

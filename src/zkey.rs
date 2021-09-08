@@ -361,7 +361,7 @@ mod tests {
     use crate::witness::WitnessCalculator;
     use crate::{circom::CircomReduction, CircomBuilder, CircomConfig};
     use ark_groth16::{
-        create_proof_with_qap_and_matrices, create_random_proof_with_reduction as prove,
+        create_proof_with_reduction_and_matrices, create_random_proof_with_reduction as prove,
         prepare_verifying_key, verify_proof,
     };
     use ark_std::rand::thread_rng;
@@ -881,7 +881,7 @@ mod tests {
         let full_assignment = wtns
             .calculate_witness_element::<Bn254, _>(inputs, false)
             .unwrap();
-        let proof = create_proof_with_qap_and_matrices::<_, CircomReduction>(
+        let proof = create_proof_with_reduction_and_matrices::<_, CircomReduction>(
             &params,
             r,
             s,
