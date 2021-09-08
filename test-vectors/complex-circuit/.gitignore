@@ -1,0 +1,8 @@
+*.swp
+complex-circuit-*-*.*
+powersOfTau*
+!complex-circuit-10000-10000.*
+proof.json
+public.json
+verification_key.json
+witness.wtns

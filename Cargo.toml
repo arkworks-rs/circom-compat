@@ -12,10 +12,10 @@ num-bigint = { version = "0.4", default-features = false, features = ["rand"] }
 
 # ZKP Generation
 ark-ec = { version = "0.3.0", default-features = false, features = ["parallel"] }
-ark-ff = { version = "0.3.0", default-features = false, features = ["asm", "parallel"] }
-ark-std = { version = "0.3.0", default-features = false }
+ark-ff = { version = "0.3.0", default-features = false, features = ["parallel", "asm"] }
+ark-std = { version = "0.3.0", default-features = false, features = ["parallel"] }
 ark-bn254 = { version = "0.3.0" }
-ark-groth16 = { git = "https://github.com/gakonst/groth16", version = "0.3.0", branch = "calculate-matrices", features = ["parallel"] }
+ark-groth16 = { git = "https://github.com/arkworks-rs/groth16", rev = "765817f", features = ["parallel"] }
 ark-poly = { version = "^0.3.0", default-features = false, features = ["parallel"] }
 ark-relations = { version = "0.3.0", default-features = false }
 ark-serialize = { version = "0.3.0", default-features = false }
@@ -30,9 +30,18 @@ ethers-core = { git = "https://github.com/gakonst/ethers-rs", default-features =
 # error handling
 thiserror = "1.0.26"
 color-eyre = "0.5"
+criterion = "0.3.4"
 
 [dev-dependencies]
 hex-literal = "0.2.1"
 tokio = { version = "1.7.1", features = ["macros"] }
 serde_json = "1.0.64"
 ethers = { git = "https://github.com/gakonst/ethers-rs", features = ["abigen"] }
+cfg-if = "1.0"
+
+[[bench]]
+name = "groth16"
+harness = false
+
+[features]
+bench-complex-all = []
