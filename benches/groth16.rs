@@ -4,7 +4,7 @@ use ark_circom::{read_zkey, CircomReduction, WitnessCalculator};
 use ark_std::rand::thread_rng;
 
 use ark_bn254::Bn254;
-use ark_groth16::{create_proof_with_qap_and_matrices, prepare_verifying_key, verify_proof};
+use ark_groth16::{create_proof_with_reduction_and_matrices, prepare_verifying_key, verify_proof};
 
 use std::{collections::HashMap, fs::File};
 
@@ -44,7 +44,7 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
     let r = ark_bn254::Fr::rand(rng);
     let s = ark_bn254::Fr::rand(rng);
 
-    let proof = create_proof_with_qap_and_matrices::<_, CircomReduction>(
+    let proof = create_proof_with_reduction_and_matrices::<_, CircomReduction>(
         &params,
         r,
         s,
@@ -64,7 +64,7 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
     c.bench_function(&format!("groth proof {} {}", i, j), |b| {
         b.iter(|| {
             black_box(
-                create_proof_with_qap_and_matrices::<_, CircomReduction>(
+                create_proof_with_reduction_and_matrices::<_, CircomReduction>(
                     &params,
                     r,
                     s,
