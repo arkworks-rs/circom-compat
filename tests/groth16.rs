@@ -37,3 +37,31 @@ fn groth16_proof() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn groth16_proof_wrong_input() -> Result<()> {
+    let cfg = CircomConfig::<Bn254>::new(
+        "./test-vectors/mycircuit.wasm",
+        "./test-vectors/mycircuit.r1cs",
+    )?;
+    let mut builder = CircomBuilder::new(cfg);
+    builder.push_input("a", 3);
+    // This isn't a public input to the circuit, should faild
+    builder.push_input("foo", 11);
+
+    // create an empty instance for setting it up
+    let circom = builder.setup();
+
+    let mut rng = thread_rng();
+    let _params = generate_random_parameters::<Bn254, _, _>(circom, &mut rng)?;
+
+    match builder.build() {
+        Ok(_v) => {
+            panic!("Should't be able to calculate witness with wrong public input");
+        }
+        Err(_e) => {
+            // Wrong public input, unable to calculate witness as expected
+            return Ok(());
+        }
+    }
+}
