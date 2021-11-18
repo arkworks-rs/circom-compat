@@ -2,7 +2,6 @@ use color_eyre::Result;
 use num_bigint::BigInt;
 use num_traits::Zero;
 use std::cell::Cell;
-use std::fmt;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
 
 use super::{fnv, SafeMemory, Wasm};
@@ -16,16 +15,9 @@ pub struct WitnessCalculator {
 
 // Error type to signal end of execution.
 // From https://docs.wasmer.io/integrations/examples/exit-early
-#[derive(Debug, Clone, Copy)]
+#[derive(thiserror::Error, Debug, Clone, Copy)]
+#[error("{0}")]
 struct ExitCode(u32);
-
-impl fmt::Display for ExitCode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl std::error::Error for ExitCode {}
 
 impl WitnessCalculator {
     pub fn new(path: impl AsRef<std::path::Path>) -> Result<Self> {
@@ -161,8 +153,11 @@ mod runtime {
         fn func(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32) {
             // NOTE: We can also get more information why it is failing, see p2str etc here:
             // https://github.com/iden3/circom_runtime/blob/master/js/witness_calculator.js#L52-L64
-           println!("runtime error, exiting early: {0} {1} {2} {3} {4} {5}", a, b, c, d, e, f);
-           RuntimeError::raise(Box::new(ExitCode(1)));
+            println!(
+                "runtime error, exiting early: {0} {1} {2} {3} {4} {5}",
+                a, b, c, d, e, f
+            );
+            RuntimeError::raise(Box::new(ExitCode(1)));
         }
         Function::new_native(store, func)
     }
