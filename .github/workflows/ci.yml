@@ -1,6 +1,6 @@
 on:
   push:
-    branches: 
+    branches:
       - master
   pull_request:
 
@@ -34,6 +34,10 @@ jobs:
             chmod u+x "$HOME/bin/solc"
             export PATH=$HOME/bin:$PATH
             solc --version
+
+      - uses: Swatinem/rust-cache@v1
+        with:
+          cache-on-failure: true
 
       - name: cargo test
         run: |
