@@ -50,7 +50,14 @@ impl WitnessCalculator {
 
         // Circom 2.0
         #[cfg(feature = "circom-2")]
-        let n32 = instance.get_field_num_len32()?;
+        let version = instance.get_version()?;
+
+        // Circom 2.0
+        #[cfg(feature = "circom-2")]
+        {
+            let n32 = instance.get_field_num_len32()?;
+            println!("Circom version {}, n32 {}", version, n32);
+        }
 
         let mut memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
 

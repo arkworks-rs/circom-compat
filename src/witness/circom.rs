@@ -15,6 +15,12 @@ impl Wasm {
         Ok(())
     }
 
+
+    // Circom 2.0
+    pub fn get_version(&self) -> Result<i32> {
+        self.get_i32("getVersion")
+    }
+
     // Circom 1
     pub fn get_fr_len(&self) -> Result<i32> {
         self.get_i32("getFrLen")
