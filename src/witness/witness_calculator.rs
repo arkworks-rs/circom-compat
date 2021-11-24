@@ -38,6 +38,7 @@ impl WitnessCalculator {
                 "logFinishComponent" => runtime::log_component(&store),
                 "logStartComponent" => runtime::log_component(&store),
                 "log" => runtime::log_component(&store),
+                "exceptionHandler" => runtime::exception_handler(&store),
             }
         };
         let instance = Wasm::new(Instance::new(&module, &import_object)?);
@@ -158,6 +159,15 @@ mod runtime {
                 a, b, c, d, e, f
             );
             RuntimeError::raise(Box::new(ExitCode(1)));
+        }
+        Function::new_native(store, func)
+    }
+
+    // Circom 2.0
+    pub fn exception_handler(store: &Store) -> Function {
+        #[allow(unused)]
+        fn func(a: i32) {
+            println!("exception_handler hit, {}", a);
         }
         Function::new_native(store, func)
     }
