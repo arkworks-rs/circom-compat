@@ -39,6 +39,7 @@ impl WitnessCalculator {
                 "logStartComponent" => runtime::log_component(&store),
                 "log" => runtime::log_component(&store),
                 "exceptionHandler" => runtime::exception_handler(&store),
+                "showSharedRWMemory" => runtime::show_memory(&store),
             }
         };
         let instance = Wasm::new(Instance::new(&module, &import_object)?);
@@ -169,6 +170,13 @@ mod runtime {
         fn func(a: i32) {
             println!("exception_handler hit, {}", a);
         }
+        Function::new_native(store, func)
+    }
+
+    // Circom 2.0
+    pub fn show_memory(store: &Store) -> Function {
+        #[allow(unused)]
+        fn func() {}
         Function::new_native(store, func)
     }
 
