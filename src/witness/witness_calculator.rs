@@ -52,17 +52,35 @@ impl WitnessCalculator {
         #[cfg(feature = "circom-2")]
         let version = instance.get_version()?;
 
+        let n32;
+
         // Circom 2.0
         #[cfg(feature = "circom-2")]
         {
-            let n32 = instance.get_field_num_len32()?;
+            n32 = instance.get_field_num_len32()?;
             println!("Circom version {}, n32 {}", version, n32);
         }
 
         let mut memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
+        let prime;
 
-        let ptr = instance.get_ptr_raw_prime()?;
-        let prime = memory.read_big(ptr as usize, n32 as usize)?;
+        // Circom 1
+        #[cfg(not(feature = "circom-2"))]
+        {
+            let ptr = instance.get_ptr_raw_prime()?;
+            prime = memory.read_big(ptr as usize, n32 as usize)?;
+        }
+
+        // Circom 2.0
+        #[cfg(feature = "circom-2")]
+        {
+            let _res = instance.get_raw_prime()?;
+            // TODO get prime with readSharedRWMemory
+            prime = BigInt::zero();
+        }
+
+        println!("Circom prime is {}", prime);
+
         let n64 = ((prime.bits() - 1) / 64 + 1) as i32;
         memory.prime = prime;
 

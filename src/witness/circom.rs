@@ -31,8 +31,16 @@ impl Wasm {
         self.get_i32("getFieldNumLen32")
     }
 
+    // Circom 1
     pub fn get_ptr_raw_prime(&self) -> Result<i32> {
         self.get_i32("getPRawPrime")
+    }
+
+    // Circom 2.0
+    pub fn get_raw_prime(&self) -> Result<()> {
+        let func = self.func("getRawPrime");
+        let _result = func.call(&[])?;
+        Ok(())
     }
 
     pub fn get_n_vars(&self) -> Result<i32> {
