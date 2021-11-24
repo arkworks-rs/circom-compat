@@ -19,6 +19,16 @@ pub struct WitnessCalculator {
 #[error("{0}")]
 struct ExitCode(u32);
 
+// Based on https://github.com/oskarth/hello-circom/blob/master/multiplier2_js/witness_calculator.js#L254-L261
+fn from_array32(arr: Vec<i32>) -> BigInt {
+    let mut res = BigInt::zero();
+    let radix = BigInt::from(0x100000000u64);
+    for i in 0..arr.len() {
+        res = res * &radix + BigInt::from(arr[i]);
+    }
+    return res;
+}
+
 impl WitnessCalculator {
     pub fn new(path: impl AsRef<std::path::Path>) -> Result<Self> {
         let store = Store::default();
@@ -64,7 +74,7 @@ impl WitnessCalculator {
         println!("Circom version {}, n32 {}", version, n32);
 
         let mut memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
-        let prime;
+        let prime: BigInt;
 
         // Circom 1
         #[cfg(not(feature = "circom-2"))]
@@ -77,8 +87,13 @@ impl WitnessCalculator {
         #[cfg(feature = "circom-2")]
         {
             let _res = instance.get_raw_prime()?;
-            // TODO get prime with readSharedRWMemory
-            prime = BigInt::zero();
+            let mut arr = vec![0; n32 as usize];
+            for i in 0..n32 {
+                let res = instance.read_shared_rw_memory(i)?;
+                arr[(n32 as usize) - (i as usize) - 1] = res;
+            }
+
+            prime = from_array32(arr);
         }
 
         println!("Circom prime is {}", prime);

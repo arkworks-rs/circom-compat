@@ -58,6 +58,13 @@ impl Wasm {
         Ok(res[0].unwrap_i32())
     }
 
+    // Circom 2.0
+    pub fn read_shared_rw_memory(&self, i: i32) -> Result<i32> {
+        let func = self.func("readSharedRWMemory");
+        let result = func.call(&[i.into()])?;
+        Ok(result[0].unwrap_i32())
+    }
+
     pub fn get_signal_offset32(
         &self,
         p_sig_offset: u32,
