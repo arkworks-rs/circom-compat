@@ -44,22 +44,24 @@ impl WitnessCalculator {
         };
         let instance = Wasm::new(Instance::new(&module, &import_object)?);
 
+        let version;
+        let n32;
+
         // Circom 1
         #[cfg(not(feature = "circom-2"))]
-        let n32 = (instance.get_fr_len()? >> 2) - 2;
-
-        // Circom 2.0
-        #[cfg(feature = "circom-2")]
-        let version = instance.get_version()?;
-
-        let n32;
+        {
+            version = 1;
+            n32 = (instance.get_fr_len()? >> 2) - 2;
+        }
 
         // Circom 2.0
         #[cfg(feature = "circom-2")]
         {
+            version = instance.get_version()?;
             n32 = instance.get_field_num_len32()?;
-            println!("Circom version {}, n32 {}", version, n32);
         }
+
+        println!("Circom version {}, n32 {}", version, n32);
 
         let mut memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
         let prime;
