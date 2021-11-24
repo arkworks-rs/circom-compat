@@ -15,8 +15,14 @@ impl Wasm {
         Ok(())
     }
 
+    // Circom 1
     pub fn get_fr_len(&self) -> Result<i32> {
         self.get_i32("getFrLen")
+    }
+
+    // Circom 2.0
+    pub fn get_field_num_len32(&self) -> Result<i32> {
+        self.get_i32("getFieldNumLen32")
     }
 
     pub fn get_ptr_raw_prime(&self) -> Result<i32> {
