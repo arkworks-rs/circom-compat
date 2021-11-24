@@ -61,6 +61,8 @@ impl<E: PairingEngine> R1CSFile<E> {
         let _sec_type = reader.read_u32::<LittleEndian>()?;
         let sec_size = reader.read_u64::<LittleEndian>()?;
 
+        println!("R1CSFile new, about to create new header");
+
         let header = Header::new(&mut reader, sec_size)?;
         let _sec_type = reader.read_u32::<LittleEndian>()?;
         let _sec_size = reader.read_u64::<LittleEndian>()?;
@@ -93,6 +95,7 @@ pub struct Header {
 impl Header {
     fn new<R: Read>(mut reader: R, size: u64) -> Result<Header> {
         let field_size = reader.read_u32::<LittleEndian>()?;
+        println!("r1cs_reader header new field_size {}", field_size);
         if field_size != 32 {
             return Err(Error::new(
                 ErrorKind::InvalidData,
