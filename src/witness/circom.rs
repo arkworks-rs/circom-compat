@@ -1,18 +1,6 @@
 use color_eyre::Result;
 use wasmer::{Function, Instance, Value};
 
-#[derive(Clone, Debug)]
-pub struct CircomBase(Instance);
-
-pub struct Circom(CircomBase);
-pub struct Circom2(CircomBase);
-
-#[derive(Clone, Debug)]
-pub enum CircomInstance {
-    Circom(CircomBase),
-    Circom2(CircomBase)
-}
-
 pub enum CircomVersion {
     V1,
     V2
@@ -20,24 +8,36 @@ pub enum CircomVersion {
 
 #[derive(Clone, Debug)]
 pub struct Wasm {
-    circom: CircomInstance
+    instance: Instance
 }
 
-impl CircomBase {
-    pub fn new(instance: Instance) -> Self {
-        Self(instance)
+trait CircomBase {
+    fn func(&self, name: &str) -> &Function;
+}
+
+trait Circom {
+}
+
+trait Circom2 {
+}
+
+impl Circom for Wasm {
+}
+
+impl CircomBase for Wasm {
+    fn func(&self, name: &str) -> &Function {
+        self.instance
+            .exports
+            .get_function(name)
+            .unwrap_or_else(|_| panic!("function {} not found", name))
     }
 }
+
+
 impl Wasm {
+    // XXX Do we need version?
     pub fn new(instance: Instance, version: CircomVersion) -> Self {
-        match version {
-            CircomVersion::V1 => {
-                Self { circom: CircomInstance::Circom(CircomBase::new(instance)) }
-            }
-            CircomVersion::V2 => {
-                Self { circom: CircomInstance::Circom2(CircomBase::new(instance)) }
-            }
-        }
+        Self { instance }
     }
 
     pub fn init(&self, sanity_check: bool) -> Result<()> {
@@ -46,11 +46,6 @@ impl Wasm {
         Ok(())
     }
 
-    pub fn foo(&self) {
-        // XXX We can't do anything with this as a Circom struct,
-        // because it is a variant?
-       //self.circom
-    }
     // Circom 2.0
     pub fn get_version(&self) -> Result<i32> {
         self.get_i32("getVersion")
@@ -129,12 +124,5 @@ impl Wasm {
         let func = self.func(name);
         let result = func.call(&[])?;
         Ok(result[0].unwrap_i32())
-    }
-
-    fn func(&self, name: &str) -> &Function {
-        self.instance
-            .exports
-            .get_function(name)
-            .unwrap_or_else(|_| panic!("function {} not found", name))
     }
 }
