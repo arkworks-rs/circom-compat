@@ -1,10 +1,15 @@
+use super::{fnv, CircomBase, SafeMemory, Wasm};
 use color_eyre::Result;
 use num_bigint::BigInt;
 use num_traits::Zero;
 use std::cell::Cell;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
 
-use super::{fnv, Circom, Circom2, CircomBase, SafeMemory, Wasm};
+#[cfg(feature = "circom-2")]
+use super::Circom2;
+
+#[cfg(not(feature = "circom-2"))]
+use super::Circom;
 
 #[derive(Clone, Debug)]
 pub struct WitnessCalculator {
@@ -19,6 +24,7 @@ pub struct WitnessCalculator {
 #[error("{0}")]
 struct ExitCode(u32);
 
+#[cfg(feature = "circom-2")]
 fn from_array32(arr: Vec<i32>) -> BigInt {
     let mut res = BigInt::zero();
     let radix = BigInt::from(0x100000000u64);
@@ -53,14 +59,13 @@ impl WitnessCalculator {
         };
         let instance = Wasm::new(Instance::new(&module, &import_object)?);
 
-        let version;
         let n32;
         let prime: BigInt;
         let mut safe_memory: SafeMemory;
 
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
-                version = instance.get_version()?;
+                //let version = instance.get_version()?;
                 n32 = instance.get_field_num_len32()?;
                 safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
                 let _res = instance.get_raw_prime()?;
@@ -72,7 +77,7 @@ impl WitnessCalculator {
                 prime = from_array32(arr);
             } else {
                 // Fallback to Circom 1 behavior
-                version = 1;
+                //version = 1;
                 n32 = (instance.get_fr_len()? >> 2) - 2;
                 safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
                 let ptr = instance.get_ptr_raw_prime()?;
