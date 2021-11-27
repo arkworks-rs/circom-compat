@@ -53,7 +53,7 @@ impl WitnessCalculator {
             }
         };
         let instance = Wasm::new(Instance::new(&module, &import_object)?,
-                                 CircomVersion::Circom);
+                                 CircomVersion::V1);
 
         let version;
         let n32;
