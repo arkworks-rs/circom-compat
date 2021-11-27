@@ -5,6 +5,7 @@ use std::cell::Cell;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
 
 use super::{fnv, SafeMemory, Wasm, CircomVersion};
+use crate::witness::circom::{CircomBase, Circom, Circom2};
 
 #[derive(Clone, Debug)]
 pub struct WitnessCalculator {
