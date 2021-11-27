@@ -57,54 +57,37 @@ impl WitnessCalculator {
 
         let version;
         let n32;
-
-        // Circom 1
-        #[cfg(not(feature = "circom-2"))]
-        {
-            version = 1;
-            n32 = (instance.get_fr_len()? >> 2) - 2;
-        }
-
-        // Circom 2.0
-        #[cfg(feature = "circom-2")]
-        {
-            version = instance.get_version()?;
-            n32 = instance.get_field_num_len32()?;
-        }
-
-        println!("Circom version {}, n32 {}", version, n32);
-
-        let mut memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
         let prime: BigInt;
+        let mut safe_memory: SafeMemory;
 
-        // Circom 1
-        #[cfg(not(feature = "circom-2"))]
-        {
-            let ptr = instance.get_ptr_raw_prime()?;
-            prime = memory.read_big(ptr as usize, n32 as usize)?;
-        }
-
-        // Circom 2.0
-        #[cfg(feature = "circom-2")]
-        {
-            let _res = instance.get_raw_prime()?;
-            let mut arr = vec![0; n32 as usize];
-            for i in 0..n32 {
-                let res = instance.read_shared_rw_memory(i)?;
-                arr[(n32 as usize) - (i as usize) - 1] = res;
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "circom-2")] {
+                version = instance.get_version()?;
+                n32 = instance.get_field_num_len32()?;
+                safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
+                let _res = instance.get_raw_prime()?;
+                let mut arr = vec![0; n32 as usize];
+                for i in 0..n32 {
+                    let res = instance.read_shared_rw_memory(i)?;
+                    arr[(n32 as usize) - (i as usize) - 1] = res;
+                }
+                prime = from_array32(arr);
+            } else {
+                // Fallback to Circom 1 behavior
+                version = 1;
+                n32 = (instance.get_fr_len()? >> 2) - 2;
+                safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
+                let ptr = instance.get_ptr_raw_prime()?;
+                prime = safe_memory.read_big(ptr as usize, n32 as usize)?;
             }
-
-            prime = from_array32(arr);
         }
-
-        println!("Circom prime is {}", prime);
 
         let n64 = ((prime.bits() - 1) / 64 + 1) as i32;
-        memory.prime = prime;
+        safe_memory.prime = prime;
 
         Ok(WitnessCalculator {
             instance,
-            memory,
+            memory: safe_memory,
             n64,
         })
     }
