@@ -1,12 +1,25 @@
 use color_eyre::Result;
 use wasmer::{Function, Instance, Value};
 
+struct CircomBase;
+pub struct Circom;
+pub struct Circom2;
+
 #[derive(Clone, Debug)]
-pub struct Wasm(Instance);
+pub enum CircomVersion {
+    Circom,
+    Circom2
+}
+
+#[derive(Clone, Debug)]
+pub struct Wasm {
+    instance: Instance,
+    circom: CircomVersion
+}
 
 impl Wasm {
-    pub fn new(instance: Instance) -> Self {
-        Self(instance)
+    pub fn new(instance: Instance, version: CircomVersion) -> Self {
+        Self {instance, circom: version }
     }
 
     pub fn init(&self, sanity_check: bool) -> Result<()> {
@@ -97,7 +110,7 @@ impl Wasm {
     }
 
     fn func(&self, name: &str) -> &Function {
-        self.0
+        self.instance
             .exports
             .get_function(name)
             .unwrap_or_else(|_| panic!("function {} not found", name))
