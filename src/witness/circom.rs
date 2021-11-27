@@ -9,6 +9,7 @@ pub trait CircomBase {
     fn func(&self, name: &str) -> &Function;
     fn get_ptr_witness_buffer(&self) -> Result<i32>;
     fn get_ptr_witness(&self, w: i32) -> Result<i32>;
+    fn get_n_vars(&self) -> Result<i32>;
     fn get_signal_offset32(
         &self,
         p_sig_offset: u32,
@@ -28,7 +29,6 @@ pub trait CircomBase {
 pub trait Circom {
     fn get_fr_len(&self) -> Result<i32>;
     fn get_ptr_raw_prime(&self) -> Result<i32>;
-    fn get_n_vars(&self) -> Result<i32>;
 }
 
 pub trait Circom2 {
@@ -46,9 +46,6 @@ impl Circom for Wasm {
 
     fn get_ptr_raw_prime(&self) -> Result<i32> {
         self.get_i32("getPRawPrime")
-    }
-    fn get_n_vars(&self) -> Result<i32> {
-        self.get_i32("getNVars")
     }
 }
 
@@ -91,6 +88,10 @@ impl CircomBase for Wasm {
         let res = func.call(&[w.into()])?;
 
         Ok(res[0].unwrap_i32())
+    }
+
+    fn get_n_vars(&self) -> Result<i32> {
+        self.get_i32("getNVars")
     }
 
     fn get_signal_offset32(
