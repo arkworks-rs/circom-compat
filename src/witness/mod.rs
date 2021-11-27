@@ -5,7 +5,7 @@ mod memory;
 pub(super) use memory::SafeMemory;
 
 mod circom;
-pub(super) use circom::{Wasm, CircomBase, Circom, Circom2};
+pub(super) use circom::{Circom, Circom2, CircomBase, Wasm};
 
 use fnv::FnvHasher;
 use std::hash::Hasher;

@@ -4,7 +4,7 @@ use num_traits::Zero;
 use std::cell::Cell;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
 
-use super::{fnv, SafeMemory, Wasm, CircomBase, Circom, Circom2};
+use super::{fnv, Circom, Circom2, CircomBase, SafeMemory, Wasm};
 
 #[derive(Clone, Debug)]
 pub struct WitnessCalculator {
@@ -19,14 +19,13 @@ pub struct WitnessCalculator {
 #[error("{0}")]
 struct ExitCode(u32);
 
-// Based on https://github.com/oskarth/hello-circom/blob/master/multiplier2_js/witness_calculator.js#L254-L261
 fn from_array32(arr: Vec<i32>) -> BigInt {
     let mut res = BigInt::zero();
     let radix = BigInt::from(0x100000000u64);
-    for i in 0..arr.len() {
-        res = res * &radix + BigInt::from(arr[i]);
+    for &val in arr.iter() {
+        res = res * &radix + BigInt::from(val);
     }
-    return res;
+    res
 }
 
 impl WitnessCalculator {
@@ -198,8 +197,7 @@ mod runtime {
     // Circom 2.0
     pub fn exception_handler(store: &Store) -> Function {
         #[allow(unused)]
-        fn func(a: i32) {
-        }
+        fn func(a: i32) {}
         Function::new_native(store, func)
     }
 

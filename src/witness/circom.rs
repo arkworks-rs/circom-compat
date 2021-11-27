@@ -17,12 +17,7 @@ pub trait CircomBase {
         hash_msb: u32,
         hash_lsb: u32,
     ) -> Result<()>;
-    fn set_signal(&self,
-                  c_idx: i32,
-                  component: i32,
-                  signal: i32,
-                  p_val: i32
-    ) -> Result<()>;
+    fn set_signal(&self, c_idx: i32, component: i32, signal: i32, p_val: i32) -> Result<()>;
     fn get_i32(&self, name: &str) -> Result<i32>;
 }
 
