@@ -6,7 +6,6 @@ pub(super) use memory::SafeMemory;
 
 mod circom;
 pub(super) use circom::Wasm;
-pub(super) use circom::CircomVersion;
 
 use fnv::FnvHasher;
 use std::hash::Hasher;

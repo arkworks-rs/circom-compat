@@ -1,16 +1,8 @@
 use color_eyre::Result;
 use wasmer::{Function, Instance, Value};
 
-pub enum CircomVersion {
-    V1,
-    V2
-}
-
-// TODO Back to way it was
 #[derive(Clone, Debug)]
-pub struct Wasm {
-    instance: Instance
-}
+pub struct Wasm(Instance);
 
 pub trait CircomBase {
     fn init(&self, sanity_check: bool) -> Result<()>;
@@ -131,7 +123,7 @@ impl CircomBase for Wasm {
     }
 
     fn func(&self, name: &str) -> &Function {
-        self.instance
+        self.0
             .exports
             .get_function(name)
             .unwrap_or_else(|_| panic!("function {} not found", name))
@@ -139,8 +131,7 @@ impl CircomBase for Wasm {
 }
 
 impl Wasm {
-    // XXX Do we need version?
-    pub fn new(instance: Instance, version: CircomVersion) -> Self {
-        Self { instance }
+    pub fn new(instance: Instance) -> Self {
+        Self(instance)
     }
 }

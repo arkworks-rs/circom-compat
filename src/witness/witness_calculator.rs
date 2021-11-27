@@ -4,7 +4,7 @@ use num_traits::Zero;
 use std::cell::Cell;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
 
-use super::{fnv, SafeMemory, Wasm, CircomVersion};
+use super::{fnv, SafeMemory, Wasm};
 use crate::witness::circom::{CircomBase, Circom, Circom2};
 
 #[derive(Clone, Debug)]
@@ -53,8 +53,7 @@ impl WitnessCalculator {
                 "showSharedRWMemory" => runtime::show_memory(&store),
             }
         };
-        let instance = Wasm::new(Instance::new(&module, &import_object)?,
-                                 CircomVersion::V1);
+        let instance = Wasm::new(Instance::new(&module, &import_object)?);
 
         let version;
         let n32;
