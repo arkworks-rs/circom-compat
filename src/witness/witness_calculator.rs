@@ -199,7 +199,6 @@ mod runtime {
     pub fn exception_handler(store: &Store) -> Function {
         #[allow(unused)]
         fn func(a: i32) {
-            println!("exception_handler hit, {}", a);
         }
         Function::new_native(store, func)
     }

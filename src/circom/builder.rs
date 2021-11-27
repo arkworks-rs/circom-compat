@@ -27,7 +27,6 @@ impl<E: PairingEngine> CircomConfig<E> {
     pub fn new(wtns: impl AsRef<Path>, r1cs: impl AsRef<Path>) -> Result<Self> {
         let wtns = WitnessCalculator::new(wtns).unwrap();
         let reader = File::open(r1cs)?;
-        println!("CircomConfig new, about to read new R1CS file");
         let r1cs = R1CSFile::new(reader)?.into();
         Ok(Self {
             wtns,
