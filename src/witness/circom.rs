@@ -38,6 +38,7 @@ pub trait Circom2 {
     fn read_shared_rw_memory(&self, i: i32) -> Result<i32>;
 }
 
+#[cfg(not(feature = "circom-2"))]
 impl Circom for Wasm {
     fn get_fr_len(&self) -> Result<i32> {
         self.get_i32("getFrLen")
@@ -51,6 +52,7 @@ impl Circom for Wasm {
     }
 }
 
+#[cfg(feature = "circom-2")]
 impl Circom2 for Wasm {
     fn get_version(&self) -> Result<i32> {
         self.get_i32("getVersion")
