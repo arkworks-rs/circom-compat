@@ -1,10 +1,15 @@
+use super::{fnv, CircomBase, SafeMemory, Wasm};
 use color_eyre::Result;
 use num_bigint::BigInt;
 use num_traits::Zero;
 use std::cell::Cell;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
 
-use super::{fnv, SafeMemory, Wasm};
+#[cfg(feature = "circom-2")]
+use super::Circom2;
+
+#[cfg(not(feature = "circom-2"))]
+use super::Circom;
 
 #[derive(Clone, Debug)]
 pub struct WitnessCalculator {
@@ -18,6 +23,16 @@ pub struct WitnessCalculator {
 #[derive(thiserror::Error, Debug, Clone, Copy)]
 #[error("{0}")]
 struct ExitCode(u32);
+
+#[cfg(feature = "circom-2")]
+fn from_array32(arr: Vec<i32>) -> BigInt {
+    let mut res = BigInt::zero();
+    let radix = BigInt::from(0x100000000u64);
+    for &val in arr.iter() {
+        res = res * &radix + BigInt::from(val);
+    }
+    res
+}
 
 impl WitnessCalculator {
     pub fn new(path: impl AsRef<std::path::Path>) -> Result<Self> {
@@ -38,22 +53,44 @@ impl WitnessCalculator {
                 "logFinishComponent" => runtime::log_component(&store),
                 "logStartComponent" => runtime::log_component(&store),
                 "log" => runtime::log_component(&store),
+                "exceptionHandler" => runtime::exception_handler(&store),
+                "showSharedRWMemory" => runtime::show_memory(&store),
             }
         };
         let instance = Wasm::new(Instance::new(&module, &import_object)?);
 
-        let n32 = (instance.get_fr_len()? >> 2) - 2;
+        let n32;
+        let prime: BigInt;
+        let mut safe_memory: SafeMemory;
 
-        let mut memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "circom-2")] {
+                //let version = instance.get_version()?;
+                n32 = instance.get_field_num_len32()?;
+                safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
+                let _res = instance.get_raw_prime()?;
+                let mut arr = vec![0; n32 as usize];
+                for i in 0..n32 {
+                    let res = instance.read_shared_rw_memory(i)?;
+                    arr[(n32 as usize) - (i as usize) - 1] = res;
+                }
+                prime = from_array32(arr);
+            } else {
+                // Fallback to Circom 1 behavior
+                //version = 1;
+                n32 = (instance.get_fr_len()? >> 2) - 2;
+                safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
+                let ptr = instance.get_ptr_raw_prime()?;
+                prime = safe_memory.read_big(ptr as usize, n32 as usize)?;
+            }
+        }
 
-        let ptr = instance.get_ptr_raw_prime()?;
-        let prime = memory.read_big(ptr as usize, n32 as usize)?;
         let n64 = ((prime.bits() - 1) / 64 + 1) as i32;
-        memory.prime = prime;
+        safe_memory.prime = prime;
 
         Ok(WitnessCalculator {
             instance,
-            memory,
+            memory: safe_memory,
             n64,
         })
     }
@@ -159,6 +196,20 @@ mod runtime {
             );
             RuntimeError::raise(Box::new(ExitCode(1)));
         }
+        Function::new_native(store, func)
+    }
+
+    // Circom 2.0
+    pub fn exception_handler(store: &Store) -> Function {
+        #[allow(unused)]
+        fn func(a: i32) {}
+        Function::new_native(store, func)
+    }
+
+    // Circom 2.0
+    pub fn show_memory(store: &Store) -> Function {
+        #[allow(unused)]
+        fn func() {}
         Function::new_native(store, func)
     }
 

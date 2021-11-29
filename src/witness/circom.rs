@@ -4,41 +4,92 @@ use wasmer::{Function, Instance, Value};
 #[derive(Clone, Debug)]
 pub struct Wasm(Instance);
 
-impl Wasm {
-    pub fn new(instance: Instance) -> Self {
-        Self(instance)
+pub trait CircomBase {
+    fn init(&self, sanity_check: bool) -> Result<()>;
+    fn func(&self, name: &str) -> &Function;
+    fn get_ptr_witness_buffer(&self) -> Result<i32>;
+    fn get_ptr_witness(&self, w: i32) -> Result<i32>;
+    fn get_n_vars(&self) -> Result<i32>;
+    fn get_signal_offset32(
+        &self,
+        p_sig_offset: u32,
+        component: u32,
+        hash_msb: u32,
+        hash_lsb: u32,
+    ) -> Result<()>;
+    fn set_signal(&self, c_idx: i32, component: i32, signal: i32, p_val: i32) -> Result<()>;
+    fn get_i32(&self, name: &str) -> Result<i32>;
+}
+
+pub trait Circom {
+    fn get_fr_len(&self) -> Result<i32>;
+    fn get_ptr_raw_prime(&self) -> Result<i32>;
+}
+
+pub trait Circom2 {
+    fn get_version(&self) -> Result<i32>;
+    fn get_field_num_len32(&self) -> Result<i32>;
+    fn get_raw_prime(&self) -> Result<()>;
+    fn read_shared_rw_memory(&self, i: i32) -> Result<i32>;
+}
+
+#[cfg(not(feature = "circom-2"))]
+impl Circom for Wasm {
+    fn get_fr_len(&self) -> Result<i32> {
+        self.get_i32("getFrLen")
     }
 
-    pub fn init(&self, sanity_check: bool) -> Result<()> {
+    fn get_ptr_raw_prime(&self) -> Result<i32> {
+        self.get_i32("getPRawPrime")
+    }
+}
+
+#[cfg(feature = "circom-2")]
+impl Circom2 for Wasm {
+    fn get_version(&self) -> Result<i32> {
+        self.get_i32("getVersion")
+    }
+
+    fn get_field_num_len32(&self) -> Result<i32> {
+        self.get_i32("getFieldNumLen32")
+    }
+
+    fn get_raw_prime(&self) -> Result<()> {
+        let func = self.func("getRawPrime");
+        let _result = func.call(&[])?;
+        Ok(())
+    }
+
+    fn read_shared_rw_memory(&self, i: i32) -> Result<i32> {
+        let func = self.func("readSharedRWMemory");
+        let result = func.call(&[i.into()])?;
+        Ok(result[0].unwrap_i32())
+    }
+}
+
+impl CircomBase for Wasm {
+    fn init(&self, sanity_check: bool) -> Result<()> {
         let func = self.func("init");
         func.call(&[Value::I32(sanity_check as i32)])?;
         Ok(())
     }
 
-    pub fn get_fr_len(&self) -> Result<i32> {
-        self.get_i32("getFrLen")
-    }
-
-    pub fn get_ptr_raw_prime(&self) -> Result<i32> {
-        self.get_i32("getPRawPrime")
-    }
-
-    pub fn get_n_vars(&self) -> Result<i32> {
-        self.get_i32("getNVars")
-    }
-
-    pub fn get_ptr_witness_buffer(&self) -> Result<i32> {
+    fn get_ptr_witness_buffer(&self) -> Result<i32> {
         self.get_i32("getWitnessBuffer")
     }
 
-    pub fn get_ptr_witness(&self, w: i32) -> Result<i32> {
+    fn get_ptr_witness(&self, w: i32) -> Result<i32> {
         let func = self.func("getPWitness");
         let res = func.call(&[w.into()])?;
 
         Ok(res[0].unwrap_i32())
     }
 
-    pub fn get_signal_offset32(
+    fn get_n_vars(&self) -> Result<i32> {
+        self.get_i32("getNVars")
+    }
+
+    fn get_signal_offset32(
         &self,
         p_sig_offset: u32,
         component: u32,
@@ -56,7 +107,7 @@ impl Wasm {
         Ok(())
     }
 
-    pub fn set_signal(&self, c_idx: i32, component: i32, signal: i32, p_val: i32) -> Result<()> {
+    fn set_signal(&self, c_idx: i32, component: i32, signal: i32, p_val: i32) -> Result<()> {
         let func = self.func("setSignal");
         func.call(&[c_idx.into(), component.into(), signal.into(), p_val.into()])?;
 
@@ -74,5 +125,11 @@ impl Wasm {
             .exports
             .get_function(name)
             .unwrap_or_else(|_| panic!("function {} not found", name))
+    }
+}
+
+impl Wasm {
+    pub fn new(instance: Instance) -> Self {
+        Self(instance)
     }
 }
