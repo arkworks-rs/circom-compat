@@ -70,7 +70,8 @@ impl<E: PairingEngine> R1CSFile<E> {
         let mut sec_sizes = HashMap::<u32, u64>::new();
 
         // get file offset of each section
-        for _ in 0..num_sections {
+        let v = vec![0; num_sections as usize];
+        for _ in v.iter() {
             let sec_type = reader.read_u32::<LittleEndian>()?;
             let sec_size = reader.read_u64::<LittleEndian>()?;
             let offset = reader.seek(SeekFrom::Current(0))?;
