@@ -1,6 +1,6 @@
 //! R1CS circom file reader
-//! Copied from https://github.com/poma/zkutil
-//! Spec: https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md
+//! Copied from <https://github.com/poma/zkutil>
+//! Spec: <https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md>
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::io::{Error, ErrorKind, Result};
 
