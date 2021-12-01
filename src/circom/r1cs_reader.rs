@@ -84,18 +84,52 @@ impl<E: PairingEngine> R1CSFile<E> {
         let constraint_type = 2;
         let wire2label_type = 3;
 
-        reader.seek(SeekFrom::Start(*sec_offsets.get(&header_type).unwrap()))?;
-        let header = Header::new(&mut reader, *sec_sizes.get(&header_type).unwrap())?;
+        let header_offset = sec_offsets.get(&header_type).ok_or_else(|| {
+            Error::new(
+                ErrorKind::InvalidData,
+                "No section offset for header type found",
+            )
+        });
 
-        reader.seek(SeekFrom::Start(*sec_offsets.get(&constraint_type).unwrap()))?;
+        reader.seek(SeekFrom::Start(*header_offset?))?;
+
+        let header_size = sec_sizes.get(&header_type).ok_or_else(|| {
+            Error::new(
+                ErrorKind::InvalidData,
+                "No section size for header type found",
+            )
+        });
+
+        let header = Header::new(&mut reader, *header_size?)?;
+
+        let constraint_offset = sec_offsets.get(&constraint_type).ok_or_else(|| {
+            Error::new(
+                ErrorKind::InvalidData,
+                "No section offset for constraint type found",
+            )
+        });
+
+        reader.seek(SeekFrom::Start(*constraint_offset?))?;
+
         let constraints = read_constraints::<&mut R, E>(&mut reader, &header)?;
 
-        reader.seek(SeekFrom::Start(*sec_offsets.get(&wire2label_type).unwrap()))?;
-        let wire_mapping = read_map(
-            &mut reader,
-            *sec_sizes.get(&wire2label_type).unwrap(),
-            &header,
-        )?;
+        let wire2label_offset = sec_offsets.get(&wire2label_type).ok_or_else(|| {
+            Error::new(
+                ErrorKind::InvalidData,
+                "No section offset for wire2label type found",
+            )
+        });
+
+        reader.seek(SeekFrom::Start(*wire2label_offset?))?;
+
+        let wire2label_size = sec_sizes.get(&wire2label_type).ok_or_else(|| {
+            Error::new(
+                ErrorKind::InvalidData,
+                "No section size for wire2label type found",
+            )
+        });
+
+        let wire_mapping = read_map(&mut reader, *wire2label_size?, &header)?;
 
         Ok(R1CSFile {
             version,
