@@ -44,6 +44,11 @@ pub struct R1CSFile<E: PairingEngine> {
 }
 
 impl<E: PairingEngine> R1CSFile<E> {
+    /// reader must implement the Seek trait, for example with a Cursor
+    ///
+    /// ```rust,ignore
+    /// let reader = BufReader::new(Cursor::new(&data[..]));
+    /// ```
     pub fn new<R: Read + Seek>(mut reader: R) -> Result<R1CSFile<E>> {
         let mut magic = [0u8; 4];
         reader.read_exact(&mut magic)?;
