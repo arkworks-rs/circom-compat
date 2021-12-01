@@ -1,11 +1,14 @@
 //! R1CS circom file reader
-//! Copied from https://github.com/poma/zkutil
+//! Copied from <https://github.com/poma/zkutil>
+//! Spec: <https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md>
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::io::{Error, ErrorKind, Result};
 
 use ark_ec::PairingEngine;
 use ark_ff::FromBytes;
-use ark_std::io::Read;
+use ark_std::io::{Read, Seek, SeekFrom};
+
+use std::collections::HashMap;
 
 use super::{ConstraintVec, Constraints};
 
@@ -41,7 +44,12 @@ pub struct R1CSFile<E: PairingEngine> {
 }
 
 impl<E: PairingEngine> R1CSFile<E> {
-    pub fn new<R: Read>(mut reader: R) -> Result<R1CSFile<E>> {
+    /// reader must implement the Seek trait, for example with a Cursor
+    ///
+    /// ```rust,ignore
+    /// let reader = BufReader::new(Cursor::new(&data[..]));
+    /// ```
+    pub fn new<R: Read + Seek>(mut reader: R) -> Result<R1CSFile<E>> {
         let mut magic = [0u8; 4];
         reader.read_exact(&mut magic)?;
         if magic != [0x72, 0x31, 0x63, 0x73] {
@@ -54,21 +62,73 @@ impl<E: PairingEngine> R1CSFile<E> {
             return Err(Error::new(ErrorKind::InvalidData, "Unsupported version"));
         }
 
-        let _num_sections = reader.read_u32::<LittleEndian>()?;
+        let num_sections = reader.read_u32::<LittleEndian>()?;
 
-        // todo: rewrite this to support different section order and unknown sections
         // todo: handle sec_size correctly
-        let _sec_type = reader.read_u32::<LittleEndian>()?;
-        let sec_size = reader.read_u64::<LittleEndian>()?;
+        // section type -> file offset
+        let mut sec_offsets = HashMap::<u32, u64>::new();
+        let mut sec_sizes = HashMap::<u32, u64>::new();
 
-        let header = Header::new(&mut reader, sec_size)?;
-        let _sec_type = reader.read_u32::<LittleEndian>()?;
-        let _sec_size = reader.read_u64::<LittleEndian>()?;
+        // get file offset of each section
+        for _ in 0..num_sections {
+            let sec_type = reader.read_u32::<LittleEndian>()?;
+            let sec_size = reader.read_u64::<LittleEndian>()?;
+            let offset = reader.seek(SeekFrom::Current(0))?;
+            sec_offsets.insert(sec_type, offset);
+            sec_sizes.insert(sec_type, sec_size);
+            reader.seek(SeekFrom::Current(sec_size as i64))?;
+        }
+
+        let header_type = 1;
+        let constraint_type = 2;
+        let wire2label_type = 3;
+
+        let header_offset = sec_offsets.get(&header_type).ok_or_else(|| {
+            Error::new(
+                ErrorKind::InvalidData,
+                "No section offset for header type found",
+            )
+        });
+
+        reader.seek(SeekFrom::Start(*header_offset?))?;
+
+        let header_size = sec_sizes.get(&header_type).ok_or_else(|| {
+            Error::new(
+                ErrorKind::InvalidData,
+                "No section size for header type found",
+            )
+        });
+
+        let header = Header::new(&mut reader, *header_size?)?;
+
+        let constraint_offset = sec_offsets.get(&constraint_type).ok_or_else(|| {
+            Error::new(
+                ErrorKind::InvalidData,
+                "No section offset for constraint type found",
+            )
+        });
+
+        reader.seek(SeekFrom::Start(*constraint_offset?))?;
+
         let constraints = read_constraints::<&mut R, E>(&mut reader, &header)?;
 
-        let _sec_type = reader.read_u32::<LittleEndian>()?;
-        let sec_size = reader.read_u64::<LittleEndian>()?;
-        let wire_mapping = read_map(&mut reader, sec_size, &header)?;
+        let wire2label_offset = sec_offsets.get(&wire2label_type).ok_or_else(|| {
+            Error::new(
+                ErrorKind::InvalidData,
+                "No section offset for wire2label type found",
+            )
+        });
+
+        reader.seek(SeekFrom::Start(*wire2label_offset?))?;
+
+        let wire2label_size = sec_sizes.get(&wire2label_type).ok_or_else(|| {
+            Error::new(
+                ErrorKind::InvalidData,
+                "No section size for wire2label type found",
+            )
+        });
+
+        let wire_mapping = read_map(&mut reader, *wire2label_size?, &header)?;
 
         Ok(R1CSFile {
             version,
@@ -185,6 +245,7 @@ fn read_map<R: Read>(mut reader: R, size: u64, header: &Header) -> Result<Vec<u6
 mod tests {
     use super::*;
     use ark_bn254::{Bn254, Fr};
+    use ark_std::io::{BufReader, Cursor};
 
     #[test]
     fn sample() {
@@ -240,7 +301,8 @@ mod tests {
     "
         );
 
-        let file = R1CSFile::<Bn254>::new(&data[..]).unwrap();
+        let reader = BufReader::new(Cursor::new(&data[..]));
+        let file = R1CSFile::<Bn254>::new(reader).unwrap();
         assert_eq!(file.version, 1);
 
         assert_eq!(file.header.field_size, 32);
