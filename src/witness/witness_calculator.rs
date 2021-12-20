@@ -34,6 +34,23 @@ fn from_array32(arr: Vec<i32>) -> BigInt {
     res
 }
 
+#[cfg(feature = "circom-2")]
+use num::ToPrimitive;
+
+fn to_array32(s: &BigInt, size: usize) -> Vec<i32> {
+    let mut res = vec![0; size as usize];
+    let mut rem = s.clone();
+    let radix = BigInt::from(0x100000000u64);
+    let mut c = size - 1;
+    while !rem.is_zero() {
+        res[c] = (&rem % &radix).to_i32().unwrap();
+        rem /= &radix;
+        c -= 1;
+    }
+
+    res
+}
+
 impl WitnessCalculator {
     pub fn new(path: impl AsRef<std::path::Path>) -> Result<Self> {
         let store = Store::default();
@@ -100,37 +117,72 @@ impl WitnessCalculator {
         inputs: I,
         sanity_check: bool,
     ) -> Result<Vec<BigInt>> {
-        let old_mem_free_pos = self.memory.free_pos();
-
         self.instance.init(sanity_check)?;
-
-        let p_sig_offset = self.memory.alloc_u32();
-        let p_fr = self.memory.alloc_fr();
+        
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "circom-2")] {
+                let n32 = self.instance.get_field_num_len32()?;
+            } else {
+                let old_mem_free_pos = self.memory.free_pos();
+                let p_sig_offset = self.memory.alloc_u32();
+                let p_fr = self.memory.alloc_fr();
+            }
+        }
 
         // allocate the inputs
         for (name, values) in inputs.into_iter() {
             let (msb, lsb) = fnv(&name);
-            self.instance
-                .get_signal_offset32(p_sig_offset, 0, msb, lsb)?;
+            
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "circom-2")] {
+                    for (i, value) in values.into_iter().enumerate() {
+                        let f_arr = to_array32(&value, n32 as usize);
+                        for j in 0..n32 {
+                            self.instance.write_shared_rw_memory(j as i32, f_arr[(n32 as usize) - 1 - (j as usize)]);
+                        }
+                        self.instance.set_input_signal(msb as i32, lsb as i32, i as i32);
+                    }
+                } else {
+                    self.instance
+                        .get_signal_offset32(p_sig_offset, 0, msb, lsb)?;
 
-            let sig_offset = self.memory.read_u32(p_sig_offset as usize) as usize;
+                    let sig_offset = self.memory.read_u32(p_sig_offset as usize) as usize;
 
-            for (i, value) in values.into_iter().enumerate() {
-                self.memory.write_fr(p_fr as usize, &value)?;
-                self.instance
-                    .set_signal(0, 0, (sig_offset + i) as i32, p_fr as i32)?;
+                    for (i, value) in values.into_iter().enumerate() {
+                        self.memory.write_fr(p_fr as usize, &value)?;
+                        self.instance
+                            .set_signal(0, 0, (sig_offset + i) as i32, p_fr as i32)?;
+                    }
+                }
             }
         }
 
         let mut w = Vec::new();
-        let n_vars = self.instance.get_n_vars()?;
-        for i in 0..n_vars {
-            let ptr = self.instance.get_ptr_witness(i)? as usize;
-            let el = self.memory.read_fr(ptr)?;
-            w.push(el);
-        }
 
-        self.memory.set_free_pos(old_mem_free_pos);
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "circom-2")] {
+                let witness_size = self.instance.get_witness_size()?;
+
+                for i in 0..witness_size {
+                    self.instance.get_witness(i);
+                    let mut arr = vec![0; n32 as usize];
+                    for j in 0..n32 {
+                        arr[(n32 as usize) - 1- (j as usize)] = self.instance.read_shared_rw_memory(j)?;
+                    }
+                    w.push(from_array32(arr));
+                }
+
+            } else {
+                let n_vars = self.instance.get_n_vars()?;
+                for i in 0..n_vars {
+                    let ptr = self.instance.get_ptr_witness(i)? as usize;
+                    let el = self.memory.read_fr(ptr)?;
+                    w.push(el);
+                }
+
+                self.memory.set_free_pos(old_mem_free_pos);
+            }
+        }
 
         Ok(w)
     }
