@@ -60,7 +60,7 @@ impl Circom2 for Wasm {
 
     fn get_raw_prime(&self) -> Result<()> {
         let func = self.func("getRawPrime");
-        let _result = func.call(&[])?;
+        func.call(&[])?;
         Ok(())
     }
 
@@ -72,19 +72,19 @@ impl Circom2 for Wasm {
 
     fn write_shared_rw_memory(&self, i: i32, v: i32) -> Result<()> {
         let func = self.func("writeSharedRWMemory");
-        let result = func.call(&[i.into(), v.into()])?;
+        func.call(&[i.into(), v.into()])?;
         Ok(())
     }
 
     fn set_input_signal(&self, hmsb: i32, hlsb: i32, pos: i32) -> Result<()> {
         let func = self.func("setInputSignal");
-        let result = func.call(&[hmsb.into(), hlsb.into(), pos.into()])?;
+        func.call(&[hmsb.into(), hlsb.into(), pos.into()])?;
         Ok(())
     }
 
     fn get_witness(&self, i: i32) -> Result<()> {
         let func = self.func("getWitness");
-        let result = func.call(&[i.into()])?;
+        func.call(&[i.into()])?;
         Ok(())
     }
 
