@@ -1,10 +1,12 @@
 use super::{fnv, CircomBase, SafeMemory, Wasm};
 use color_eyre::Result;
-use num::ToPrimitive;
 use num_bigint::BigInt;
 use num_traits::Zero;
 use std::cell::Cell;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
+
+#[cfg(feature = "circom-2")]
+use num::ToPrimitive;
 
 #[cfg(feature = "circom-2")]
 use super::Circom2;
@@ -36,7 +38,6 @@ fn from_array32(arr: Vec<i32>) -> BigInt {
 }
 
 #[cfg(feature = "circom-2")]
-
 fn to_array32(s: &BigInt, size: usize) -> Vec<i32> {
     let mut res = vec![0; size as usize];
     let mut rem = s.clone();
