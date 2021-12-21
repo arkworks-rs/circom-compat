@@ -43,6 +43,7 @@ use num_traits::Zero;
 #[derive(Clone, Debug)]
 struct Section {
     position: u64,
+    #[allow(dead_code)]
     size: usize,
 }
 
@@ -58,7 +59,9 @@ pub fn read_zkey<R: Read + Seek>(
 
 #[derive(Debug)]
 struct BinFile<'a, R> {
+    #[allow(dead_code)]
     ftype: String,
+    #[allow(dead_code)]
     version: u32,
     sections: HashMap<u32, Vec<Section>>,
     reader: &'a mut R,
@@ -255,16 +258,20 @@ impl ZVerifyingKey {
 
 #[derive(Clone, Debug)]
 struct HeaderGroth {
+    #[allow(dead_code)]
     n8q: u32,
+    #[allow(dead_code)]
     q: BigInteger256,
-
+    #[allow(dead_code)]
     n8r: u32,
+    #[allow(dead_code)]
     r: BigInteger256,
 
     n_vars: usize,
     n_public: usize,
 
     domain_size: u32,
+    #[allow(dead_code)]
     power: u32,
 
     verifying_key: ZVerifyingKey,
