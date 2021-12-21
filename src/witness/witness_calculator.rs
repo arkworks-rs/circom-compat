@@ -1,5 +1,6 @@
 use super::{fnv, CircomBase, SafeMemory, Wasm};
 use color_eyre::Result;
+use num::ToPrimitive;
 use num_bigint::BigInt;
 use num_traits::Zero;
 use std::cell::Cell;
@@ -35,7 +36,6 @@ fn from_array32(arr: Vec<i32>) -> BigInt {
 }
 
 #[cfg(feature = "circom-2")]
-use num::ToPrimitive;
 
 fn to_array32(s: &BigInt, size: usize) -> Vec<i32> {
     let mut res = vec![0; size as usize];
@@ -118,7 +118,7 @@ impl WitnessCalculator {
         sanity_check: bool,
     ) -> Result<Vec<BigInt>> {
         self.instance.init(sanity_check)?;
-        
+
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
                 let n32 = self.instance.get_field_num_len32()?;
@@ -132,7 +132,7 @@ impl WitnessCalculator {
         // allocate the inputs
         for (name, values) in inputs.into_iter() {
             let (msb, lsb) = fnv(&name);
-            
+
             cfg_if::cfg_if! {
                 if #[cfg(feature = "circom-2")] {
                     for (i, value) in values.into_iter().enumerate() {
@@ -162,7 +162,6 @@ impl WitnessCalculator {
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
                 let witness_size = self.instance.get_witness_size()?;
-
                 for i in 0..witness_size {
                     self.instance.get_witness(i);
                     let mut arr = vec![0; n32 as usize];
