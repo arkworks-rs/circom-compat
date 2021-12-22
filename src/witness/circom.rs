@@ -31,6 +31,10 @@ pub trait Circom2 {
     fn get_field_num_len32(&self) -> Result<i32>;
     fn get_raw_prime(&self) -> Result<()>;
     fn read_shared_rw_memory(&self, i: i32) -> Result<i32>;
+    fn write_shared_rw_memory(&self, i: i32, v: i32) -> Result<()>;
+    fn set_input_signal(&self, hmsb: i32, hlsb: i32, pos: i32) -> Result<()>;
+    fn get_witness(&self, i: i32) -> Result<()>;
+    fn get_witness_size(&self) -> Result<i32>;
 }
 
 #[cfg(not(feature = "circom-2"))]
@@ -56,13 +60,37 @@ impl Circom2 for Wasm {
 
     fn get_raw_prime(&self) -> Result<()> {
         let func = self.func("getRawPrime");
-        let _result = func.call(&[])?;
+        func.call(&[])?;
         Ok(())
     }
 
     fn read_shared_rw_memory(&self, i: i32) -> Result<i32> {
         let func = self.func("readSharedRWMemory");
         let result = func.call(&[i.into()])?;
+        Ok(result[0].unwrap_i32())
+    }
+
+    fn write_shared_rw_memory(&self, i: i32, v: i32) -> Result<()> {
+        let func = self.func("writeSharedRWMemory");
+        func.call(&[i.into(), v.into()])?;
+        Ok(())
+    }
+
+    fn set_input_signal(&self, hmsb: i32, hlsb: i32, pos: i32) -> Result<()> {
+        let func = self.func("setInputSignal");
+        func.call(&[hmsb.into(), hlsb.into(), pos.into()])?;
+        Ok(())
+    }
+
+    fn get_witness(&self, i: i32) -> Result<()> {
+        let func = self.func("getWitness");
+        func.call(&[i.into()])?;
+        Ok(())
+    }
+
+    fn get_witness_size(&self) -> Result<i32> {
+        let func = self.func("getWitnessSize");
+        let result = func.call(&[])?;
         Ok(result[0].unwrap_i32())
     }
 }
