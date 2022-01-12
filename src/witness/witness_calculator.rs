@@ -84,49 +84,60 @@ impl WitnessCalculator {
             Err(_) => version = 1
         }
 
-        let n32;
-        let mut safe_memory;
-        let prime;
+
+        // Circom 2 feature flag with version 2
+        #[cfg(feature = "circom-2")]
+        fn new_circom2(instance: Wasm, memory: Memory, version: i32) -> Result<WitnessCalculator> {
+            let n32 = instance.get_field_num_len32()?;
+            let mut safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
+            instance.get_raw_prime()?;
+            let mut arr = vec![0; n32 as usize];
+            for i in 0..n32 {
+                let res = instance.read_shared_rw_memory(i)?;
+                arr[(n32 as usize) - (i as usize) - 1] = res;
+            }
+            let prime = from_array32(arr);
+
+            let n64 = ((prime.bits() - 1) / 64 + 1) as i32;
+            safe_memory.prime = prime;
+
+            Ok(WitnessCalculator {
+                instance,
+                memory: safe_memory,
+                n64,
+                circom_version: version,
+            })
+        }
+
+        fn new_circom1(instance: Wasm, memory: Memory, version: i32) -> Result<WitnessCalculator> {
+            // Fallback to Circom 1 behavior
+            let n32 = (instance.get_fr_len()? >> 2) - 2;
+            let mut safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
+            let ptr = instance.get_ptr_raw_prime()?;
+            let prime = safe_memory.read_big(ptr as usize, n32 as usize)?;
+
+            let n64 = ((prime.bits() - 1) / 64 + 1) as i32;
+            safe_memory.prime = prime;
+
+            Ok(WitnessCalculator {
+                instance,
+                memory: safe_memory,
+                n64,
+                circom_version: version,
+            })
+        }
 
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
-
-                // Only enable if feature flag is enabled and Circom version is right
-                if version == 2 {
-                    n32 = instance.get_field_num_len32()?;
-                    safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
-                    instance.get_raw_prime()?;
-                    let mut arr = vec![0; n32 as usize];
-                    for i in 0..n32 {
-                        let res = instance.read_shared_rw_memory(i)?;
-                        arr[(n32 as usize) - (i as usize) - 1] = res;
-                    }
-                    prime = from_array32(arr);
-                } else {
-                    // Fallback to Circom 1 behavior
-                    n32 = (instance.get_fr_len()? >> 2) - 2;
-                    safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
-                    let ptr = instance.get_ptr_raw_prime()?;
-                    prime = safe_memory.read_big(ptr as usize, n32 as usize)?;
+                match version {
+                    2 => new_circom2(instance, memory, version),
+                    1 => new_circom1(instance, memory, version),
+                    _ => panic!("Unknown Circom version")
                 }
             } else {
-                // Fallback to Circom 1 behavior
-                n32 = (instance.get_fr_len()? >> 2) - 2;
-                safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
-                let ptr = instance.get_ptr_raw_prime()?;
-                prime = safe_memory.read_big(ptr as usize, n32 as usize)?;
+                new_circom1(instance, memory, version),
             }
         }
-
-        let n64 = ((prime.bits() - 1) / 64 + 1) as i32;
-        safe_memory.prime = prime;
-
-        Ok(WitnessCalculator {
-            instance,
-            memory: safe_memory,
-            n64,
-            circom_version: version,
-        })
     }
 
     pub fn calculate_witness<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
@@ -158,7 +169,7 @@ impl WitnessCalculator {
 
 
     // Circom 1 default behavior
-    pub fn calculate_witness_circom1<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
+    fn calculate_witness_circom1<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
         &mut self,
         inputs: I,
         sanity_check: bool,
@@ -201,7 +212,7 @@ impl WitnessCalculator {
 
     // Circom 2 feature flag with version 2
     #[cfg(feature = "circom-2")]
-    pub fn calculate_witness_circom2<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
+    fn calculate_witness_circom2<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
         &mut self,
         inputs: I,
         sanity_check: bool,
