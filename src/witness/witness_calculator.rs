@@ -127,6 +127,13 @@ impl WitnessCalculator {
             })
         }
 
+        // Three possibilities:
+        // a) Circom 2 feature flag enabled, WASM runtime version 2
+        // b) Circom 2 feature flag enabled, WASM runtime version 1
+        // c) Circom 1 default behavior
+        //
+        // Once Circom 2 support is more stable, feature flag can be removed
+
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
                 match version {
@@ -146,13 +153,6 @@ impl WitnessCalculator {
         sanity_check: bool,
     ) -> Result<Vec<BigInt>> {
         self.instance.init(sanity_check)?;
-
-        // Three possibilities:
-        // a) Circom 2 feature flag enabled, WASM runtime version 2
-        // b) Circom 2 feature flag enabled, WASM runtime version 1
-        // c) Circom 1 default behavior
-        //
-        // Once Circom 2 support is more stable, feature flag can be removed
 
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
