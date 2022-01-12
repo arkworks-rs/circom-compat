@@ -142,7 +142,7 @@ impl WitnessCalculator {
                     _ => panic!("Unknown Circom version")
                 }
             } else {
-                new_circom1(instance, memory, version),
+                new_circom1(instance, memory, version)
             }
         }
     }
@@ -162,7 +162,7 @@ impl WitnessCalculator {
                     _ => panic!("Unknown Circom version")
                 }
             } else {
-                self.calculate_witness_circom1(inputs, sanity_check);
+                self.calculate_witness_circom1(inputs, sanity_check)
             }
         }
     }
