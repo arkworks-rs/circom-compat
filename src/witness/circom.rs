@@ -29,7 +29,6 @@ pub trait Circom {
 }
 
 pub trait Circom2 {
-//    fn get_version(&self) -> Result<i32>;
     fn get_field_num_len32(&self) -> Result<i32>;
     fn get_raw_prime(&self) -> Result<()>;
     fn read_shared_rw_memory(&self, i: i32) -> Result<i32>;
@@ -40,7 +39,6 @@ pub trait Circom2 {
 }
 
 impl Circom for Wasm {
-
     fn get_fr_len(&self) -> Result<i32> {
         self.get_i32("getFrLen")
     }
@@ -52,7 +50,6 @@ impl Circom for Wasm {
 
 #[cfg(feature = "circom-2")]
 impl Circom2 for Wasm {
-
     fn get_field_num_len32(&self) -> Result<i32> {
         self.get_i32("getFieldNumLen32")
     }
@@ -145,7 +142,7 @@ impl CircomBase for Wasm {
     fn get_version(&self) -> Result<i32> {
         match self.0.exports.get_function("getVersion") {
             Ok(func) => Ok(func.call(&[])?[0].unwrap_i32()),
-            Err(_) => Ok(1)
+            Err(_) => Ok(1),
         }
     }
 

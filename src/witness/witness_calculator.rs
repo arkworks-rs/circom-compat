@@ -81,9 +81,8 @@ impl WitnessCalculator {
 
         match instance.get_version() {
             Ok(v) => version = v,
-            Err(_) => version = 1
+            Err(_) => version = 1,
         }
-
 
         // Circom 2 feature flag with version 2
         #[cfg(feature = "circom-2")]
@@ -167,7 +166,6 @@ impl WitnessCalculator {
         }
     }
 
-
     // Circom 1 default behavior
     fn calculate_witness_circom1<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
         &mut self,
@@ -228,9 +226,13 @@ impl WitnessCalculator {
             for (i, value) in values.into_iter().enumerate() {
                 let f_arr = to_array32(&value, n32 as usize);
                 for j in 0..n32 {
-                    self.instance.write_shared_rw_memory(j as i32, f_arr[(n32 as usize) - 1 - (j as usize)])?;
+                    self.instance.write_shared_rw_memory(
+                        j as i32,
+                        f_arr[(n32 as usize) - 1 - (j as usize)],
+                    )?;
                 }
-                self.instance.set_input_signal(msb as i32, lsb as i32, i as i32)?;
+                self.instance
+                    .set_input_signal(msb as i32, lsb as i32, i as i32)?;
             }
         }
 
@@ -241,7 +243,7 @@ impl WitnessCalculator {
             self.instance.get_witness(i)?;
             let mut arr = vec![0; n32 as usize];
             for j in 0..n32 {
-                arr[(n32 as usize) - 1- (j as usize)] = self.instance.read_shared_rw_memory(j)?;
+                arr[(n32 as usize) - 1 - (j as usize)] = self.instance.read_shared_rw_memory(j)?;
             }
             w.push(from_array32(arr));
         }
