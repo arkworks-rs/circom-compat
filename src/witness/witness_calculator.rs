@@ -54,7 +54,6 @@ fn to_array32(s: &BigInt, size: usize) -> Vec<i32> {
 
 impl WitnessCalculator {
     pub fn new(path: impl AsRef<std::path::Path>) -> Result<Self> {
-        println!("WitnessCalculator new");
         let store = Store::default();
         let module = Module::from_file(&store, path)?;
 
@@ -85,19 +84,15 @@ impl WitnessCalculator {
             Err(_) => version = 1
         }
 
-        println!("Version {:}", version);
-
         let n32;
         let mut safe_memory;
         let prime;
 
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
-                println!("WitnessCalculator circom2 feature");
 
                 // Only enable if feature flag is enabled and Circom version is right
                 if version == 2 {
-                    println!("WitnessCalculator version 2");
                     n32 = instance.get_field_num_len32()?;
                     safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
                     instance.get_raw_prime()?;
@@ -109,7 +104,6 @@ impl WitnessCalculator {
                     prime = from_array32(arr);
                 } else {
                     // Fallback to Circom 1 behavior
-                    println!("WitnessCalculator version 1");
                     n32 = (instance.get_fr_len()? >> 2) - 2;
                     safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
                     let ptr = instance.get_ptr_raw_prime()?;
@@ -117,7 +111,6 @@ impl WitnessCalculator {
                 }
             } else {
                 // Fallback to Circom 1 behavior
-                println!("WitnessCalculator no circom2 feature");
                 n32 = (instance.get_fr_len()? >> 2) - 2;
                 safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
                 let ptr = instance.get_ptr_raw_prime()?;
@@ -244,10 +237,6 @@ impl WitnessCalculator {
 
         Ok(w)
     }
-
-
-    ///
-    ///
 
     pub fn calculate_witness_element<
         E: ark_ec::PairingEngine,
