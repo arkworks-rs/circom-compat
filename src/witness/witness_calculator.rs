@@ -11,7 +11,6 @@ use num::ToPrimitive;
 #[cfg(feature = "circom-2")]
 use super::Circom2;
 
-#[cfg(not(feature = "circom-2"))]
 use super::Circom;
 
 #[derive(Clone, Debug)]
@@ -19,6 +18,7 @@ pub struct WitnessCalculator {
     pub instance: Wasm,
     pub memory: SafeMemory,
     pub n64: i32,
+    pub circom_version: i32,
 }
 
 // Error type to signal end of execution.
@@ -77,36 +77,73 @@ impl WitnessCalculator {
         };
         let instance = Wasm::new(Instance::new(&module, &import_object)?);
 
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "circom-2")] {
-                //let version = instance.get_version()?;
-                let n32 = instance.get_field_num_len32()?;
-                let mut safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
-                instance.get_raw_prime()?;
-                let mut arr = vec![0; n32 as usize];
-                for i in 0..n32 {
-                    let res = instance.read_shared_rw_memory(i)?;
-                    arr[(n32 as usize) - (i as usize) - 1] = res;
-                }
-                let prime = from_array32(arr);
-            } else {
-                // Fallback to Circom 1 behavior
-                //version = 1;
-                let n32 = (instance.get_fr_len()? >> 2) - 2;
-                let mut safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
-                let ptr = instance.get_ptr_raw_prime()?;
-                let prime = safe_memory.read_big(ptr as usize, n32 as usize)?;
-            }
+        let version;
+
+        match instance.get_version() {
+            Ok(v) => version = v,
+            Err(_) => version = 1,
         }
 
-        let n64 = ((prime.bits() - 1) / 64 + 1) as i32;
-        safe_memory.prime = prime;
+        // Circom 2 feature flag with version 2
+        #[cfg(feature = "circom-2")]
+        fn new_circom2(instance: Wasm, memory: Memory, version: i32) -> Result<WitnessCalculator> {
+            let n32 = instance.get_field_num_len32()?;
+            let mut safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
+            instance.get_raw_prime()?;
+            let mut arr = vec![0; n32 as usize];
+            for i in 0..n32 {
+                let res = instance.read_shared_rw_memory(i)?;
+                arr[(n32 as usize) - (i as usize) - 1] = res;
+            }
+            let prime = from_array32(arr);
 
-        Ok(WitnessCalculator {
-            instance,
-            memory: safe_memory,
-            n64,
-        })
+            let n64 = ((prime.bits() - 1) / 64 + 1) as i32;
+            safe_memory.prime = prime;
+
+            Ok(WitnessCalculator {
+                instance,
+                memory: safe_memory,
+                n64,
+                circom_version: version,
+            })
+        }
+
+        fn new_circom1(instance: Wasm, memory: Memory, version: i32) -> Result<WitnessCalculator> {
+            // Fallback to Circom 1 behavior
+            let n32 = (instance.get_fr_len()? >> 2) - 2;
+            let mut safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
+            let ptr = instance.get_ptr_raw_prime()?;
+            let prime = safe_memory.read_big(ptr as usize, n32 as usize)?;
+
+            let n64 = ((prime.bits() - 1) / 64 + 1) as i32;
+            safe_memory.prime = prime;
+
+            Ok(WitnessCalculator {
+                instance,
+                memory: safe_memory,
+                n64,
+                circom_version: version,
+            })
+        }
+
+        // Three possibilities:
+        // a) Circom 2 feature flag enabled, WASM runtime version 2
+        // b) Circom 2 feature flag enabled, WASM runtime version 1
+        // c) Circom 1 default behavior
+        //
+        // Once Circom 2 support is more stable, feature flag can be removed
+
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "circom-2")] {
+                match version {
+                    2 => new_circom2(instance, memory, version),
+                    1 => new_circom1(instance, memory, version),
+                    _ => panic!("Unknown Circom version")
+                }
+            } else {
+                new_circom1(instance, memory, version)
+            }
+        }
     }
 
     pub fn calculate_witness<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
@@ -118,66 +155,97 @@ impl WitnessCalculator {
 
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
-                let n32 = self.instance.get_field_num_len32()?;
+                match self.circom_version {
+                    2 => self.calculate_witness_circom2(inputs, sanity_check),
+                    1 => self.calculate_witness_circom1(inputs, sanity_check),
+                    _ => panic!("Unknown Circom version")
+                }
             } else {
-                let old_mem_free_pos = self.memory.free_pos();
-                let p_sig_offset = self.memory.alloc_u32();
-                let p_fr = self.memory.alloc_fr();
+                self.calculate_witness_circom1(inputs, sanity_check)
             }
         }
+    }
+
+    // Circom 1 default behavior
+    fn calculate_witness_circom1<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
+        &mut self,
+        inputs: I,
+        sanity_check: bool,
+    ) -> Result<Vec<BigInt>> {
+        self.instance.init(sanity_check)?;
+
+        let old_mem_free_pos = self.memory.free_pos();
+        let p_sig_offset = self.memory.alloc_u32();
+        let p_fr = self.memory.alloc_fr();
 
         // allocate the inputs
         for (name, values) in inputs.into_iter() {
             let (msb, lsb) = fnv(&name);
 
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "circom-2")] {
-                    for (i, value) in values.into_iter().enumerate() {
-                        let f_arr = to_array32(&value, n32 as usize);
-                        for j in 0..n32 {
-                            self.instance.write_shared_rw_memory(j as i32, f_arr[(n32 as usize) - 1 - (j as usize)])?;
-                        }
-                        self.instance.set_input_signal(msb as i32, lsb as i32, i as i32)?;
-                    }
-                } else {
-                    self.instance
-                        .get_signal_offset32(p_sig_offset, 0, msb, lsb)?;
+            self.instance
+                .get_signal_offset32(p_sig_offset, 0, msb, lsb)?;
 
-                    let sig_offset = self.memory.read_u32(p_sig_offset as usize) as usize;
+            let sig_offset = self.memory.read_u32(p_sig_offset as usize) as usize;
 
-                    for (i, value) in values.into_iter().enumerate() {
-                        self.memory.write_fr(p_fr as usize, &value)?;
-                        self.instance
-                            .set_signal(0, 0, (sig_offset + i) as i32, p_fr as i32)?;
-                    }
-                }
+            for (i, value) in values.into_iter().enumerate() {
+                self.memory.write_fr(p_fr as usize, &value)?;
+                self.instance
+                    .set_signal(0, 0, (sig_offset + i) as i32, p_fr as i32)?;
             }
         }
 
         let mut w = Vec::new();
 
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "circom-2")] {
-                let witness_size = self.instance.get_witness_size()?;
-                for i in 0..witness_size {
-                    self.instance.get_witness(i)?;
-                    let mut arr = vec![0; n32 as usize];
-                    for j in 0..n32 {
-                        arr[(n32 as usize) - 1- (j as usize)] = self.instance.read_shared_rw_memory(j)?;
-                    }
-                    w.push(from_array32(arr));
-                }
+        let n_vars = self.instance.get_n_vars()?;
+        for i in 0..n_vars {
+            let ptr = self.instance.get_ptr_witness(i)? as usize;
+            let el = self.memory.read_fr(ptr)?;
+            w.push(el);
+        }
 
-            } else {
-                let n_vars = self.instance.get_n_vars()?;
-                for i in 0..n_vars {
-                    let ptr = self.instance.get_ptr_witness(i)? as usize;
-                    let el = self.memory.read_fr(ptr)?;
-                    w.push(el);
-                }
+        self.memory.set_free_pos(old_mem_free_pos);
 
-                self.memory.set_free_pos(old_mem_free_pos);
+        Ok(w)
+    }
+
+    // Circom 2 feature flag with version 2
+    #[cfg(feature = "circom-2")]
+    fn calculate_witness_circom2<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
+        &mut self,
+        inputs: I,
+        sanity_check: bool,
+    ) -> Result<Vec<BigInt>> {
+        self.instance.init(sanity_check)?;
+
+        let n32 = self.instance.get_field_num_len32()?;
+
+        // allocate the inputs
+        for (name, values) in inputs.into_iter() {
+            let (msb, lsb) = fnv(&name);
+
+            for (i, value) in values.into_iter().enumerate() {
+                let f_arr = to_array32(&value, n32 as usize);
+                for j in 0..n32 {
+                    self.instance.write_shared_rw_memory(
+                        j as i32,
+                        f_arr[(n32 as usize) - 1 - (j as usize)],
+                    )?;
+                }
+                self.instance
+                    .set_input_signal(msb as i32, lsb as i32, i as i32)?;
             }
+        }
+
+        let mut w = Vec::new();
+
+        let witness_size = self.instance.get_witness_size()?;
+        for i in 0..witness_size {
+            self.instance.get_witness(i)?;
+            let mut arr = vec![0; n32 as usize];
+            for j in 0..n32 {
+                arr[(n32 as usize) - 1 - (j as usize)] = self.instance.read_shared_rw_memory(j)?;
+            }
+            w.push(from_array32(arr));
         }
 
         Ok(w)
