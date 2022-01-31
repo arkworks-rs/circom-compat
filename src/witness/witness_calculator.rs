@@ -42,11 +42,11 @@ fn to_array32(s: &BigInt, size: usize) -> Vec<u32> {
     let mut res = vec![0; size as usize];
     let mut rem = s.clone();
     let radix = BigInt::from(0x100000000u64);
-    let mut c = size - 1;
+    let mut c = size;
     while !rem.is_zero() {
+        c -= 1;
         res[c] = (&rem % &radix).to_u32().unwrap();
         rem /= &radix;
-        c -= 1;
     }
 
     res
