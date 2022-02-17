@@ -17,8 +17,8 @@ use super::Circom;
 pub struct WitnessCalculator {
     pub instance: Wasm,
     pub memory: SafeMemory,
-    pub n64: i32,
-    pub circom_version: i32,
+    pub n64: u32,
+    pub circom_version: u32,
 }
 
 // Error type to signal end of execution.
@@ -28,7 +28,7 @@ pub struct WitnessCalculator {
 struct ExitCode(u32);
 
 #[cfg(feature = "circom-2")]
-fn from_array32(arr: Vec<i32>) -> BigInt {
+fn from_array32(arr: Vec<u32>) -> BigInt {
     let mut res = BigInt::zero();
     let radix = BigInt::from(0x100000000u64);
     for &val in arr.iter() {
@@ -38,15 +38,15 @@ fn from_array32(arr: Vec<i32>) -> BigInt {
 }
 
 #[cfg(feature = "circom-2")]
-fn to_array32(s: &BigInt, size: usize) -> Vec<i32> {
+fn to_array32(s: &BigInt, size: usize) -> Vec<u32> {
     let mut res = vec![0; size as usize];
     let mut rem = s.clone();
     let radix = BigInt::from(0x100000000u64);
-    let mut c = size - 1;
+    let mut c = size;
     while !rem.is_zero() {
-        res[c] = (&rem % &radix).to_i32().unwrap();
-        rem /= &radix;
         c -= 1;
+        res[c] = (&rem % &radix).to_u32().unwrap();
+        rem /= &radix;
     }
 
     res
@@ -77,16 +77,11 @@ impl WitnessCalculator {
         };
         let instance = Wasm::new(Instance::new(&module, &import_object)?);
 
-        let version;
-
-        match instance.get_version() {
-            Ok(v) => version = v,
-            Err(_) => version = 1,
-        }
+        let version = instance.get_version().unwrap_or(1);
 
         // Circom 2 feature flag with version 2
         #[cfg(feature = "circom-2")]
-        fn new_circom2(instance: Wasm, memory: Memory, version: i32) -> Result<WitnessCalculator> {
+        fn new_circom2(instance: Wasm, memory: Memory, version: u32) -> Result<WitnessCalculator> {
             let n32 = instance.get_field_num_len32()?;
             let mut safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
             instance.get_raw_prime()?;
@@ -97,7 +92,7 @@ impl WitnessCalculator {
             }
             let prime = from_array32(arr);
 
-            let n64 = ((prime.bits() - 1) / 64 + 1) as i32;
+            let n64 = ((prime.bits() - 1) / 64 + 1) as u32;
             safe_memory.prime = prime;
 
             Ok(WitnessCalculator {
@@ -108,14 +103,14 @@ impl WitnessCalculator {
             })
         }
 
-        fn new_circom1(instance: Wasm, memory: Memory, version: i32) -> Result<WitnessCalculator> {
+        fn new_circom1(instance: Wasm, memory: Memory, version: u32) -> Result<WitnessCalculator> {
             // Fallback to Circom 1 behavior
             let n32 = (instance.get_fr_len()? >> 2) - 2;
             let mut safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
             let ptr = instance.get_ptr_raw_prime()?;
             let prime = safe_memory.read_big(ptr as usize, n32 as usize)?;
 
-            let n64 = ((prime.bits() - 1) / 64 + 1) as i32;
+            let n64 = ((prime.bits() - 1) / 64 + 1) as u32;
             safe_memory.prime = prime;
 
             Ok(WitnessCalculator {
@@ -190,7 +185,7 @@ impl WitnessCalculator {
             for (i, value) in values.into_iter().enumerate() {
                 self.memory.write_fr(p_fr as usize, &value)?;
                 self.instance
-                    .set_signal(0, 0, (sig_offset + i) as i32, p_fr as i32)?;
+                    .set_signal(0, 0, (sig_offset + i) as u32, p_fr as u32)?;
             }
         }
 
@@ -227,12 +222,12 @@ impl WitnessCalculator {
                 let f_arr = to_array32(&value, n32 as usize);
                 for j in 0..n32 {
                     self.instance.write_shared_rw_memory(
-                        j as i32,
+                        j as u32,
                         f_arr[(n32 as usize) - 1 - (j as usize)],
                     )?;
                 }
                 self.instance
-                    .set_input_signal(msb as i32, lsb as i32, i as i32)?;
+                    .set_input_signal(msb as u32, lsb as u32, i as u32)?;
             }
         }
 
