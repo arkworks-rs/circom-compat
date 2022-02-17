@@ -90,3 +90,19 @@ fn groth16_proof_circom2() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+#[cfg(feature = "circom-2")]
+fn witness_generation_circom2() -> Result<()> {
+    let cfg = CircomConfig::<Bn254>::new(
+        "./test-vectors/circom2_multiplier2.wasm",
+        "./test-vectors/circom2_multiplier2.r1cs",
+    )?;
+    let mut builder = CircomBuilder::new(cfg);
+    builder.push_input("a", 3);
+    builder.push_input("b", 0x100000000u64 - 1);
+
+    assert!(builder.build().is_ok());
+
+    Ok(())
+}
