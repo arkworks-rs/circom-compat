@@ -83,7 +83,15 @@ impl<E: PairingEngine> CircomBuilder<E> {
             use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem};
             let cs = ConstraintSystem::<E::Fr>::new_ref();
             circom.clone().generate_constraints(cs.clone()).unwrap();
-            cs.is_satisfied().unwrap()
+            let is_satisfied = cs.is_satisfied().unwrap();
+            if !is_satisfied {
+                println!(
+                    "Unsatisfied constraint: {:?}",
+                    cs.which_is_unsatisfied().unwrap()
+                );
+            }
+
+            is_satisfied
         });
 
         Ok(circom)
