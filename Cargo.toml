@@ -30,7 +30,7 @@ ethers-core = { git = "https://github.com/gakonst/ethers-rs", default-features =
 
 # error handling
 thiserror = "1.0.26"
-color-eyre = "0.5"
+color-eyre = "0.6"
 criterion = "0.3.4"
 
 cfg-if = "1.0"
