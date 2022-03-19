@@ -67,7 +67,7 @@ impl WitnessCalculator {
         let store = module.store();
 
         // Set up the memory
-        let memory = Memory::new(&store, MemoryType::new(2000, None, false)).unwrap();
+        let memory = Memory::new(store, MemoryType::new(2000, None, false)).unwrap();
         let import_object = imports! {
             "env" => {
                 "memory" => memory.clone(),
