@@ -54,25 +54,34 @@ fn to_array32(s: &BigInt, size: usize) -> Vec<u32> {
 
 impl WitnessCalculator {
     pub fn new(path: impl AsRef<std::path::Path>) -> Result<Self> {
+        Self::from_file(path)
+    }
+
+    pub fn from_file(path: impl AsRef<std::path::Path>) -> Result<Self> {
         let store = Store::default();
         let module = Module::from_file(&store, path)?;
+        Self::from_module(module)
+    }
+
+    pub fn from_module(module: Module) -> Result<Self> {
+        let store = module.store();
 
         // Set up the memory
-        let memory = Memory::new(&store, MemoryType::new(2000, None, false)).unwrap();
+        let memory = Memory::new(store, MemoryType::new(2000, None, false)).unwrap();
         let import_object = imports! {
             "env" => {
                 "memory" => memory.clone(),
             },
             // Host function callbacks from the WASM
             "runtime" => {
-                "error" => runtime::error(&store),
-                "logSetSignal" => runtime::log_signal(&store),
-                "logGetSignal" => runtime::log_signal(&store),
-                "logFinishComponent" => runtime::log_component(&store),
-                "logStartComponent" => runtime::log_component(&store),
-                "log" => runtime::log_component(&store),
-                "exceptionHandler" => runtime::exception_handler(&store),
-                "showSharedRWMemory" => runtime::show_memory(&store),
+                "error" => runtime::error(store),
+                "logSetSignal" => runtime::log_signal(store),
+                "logGetSignal" => runtime::log_signal(store),
+                "logFinishComponent" => runtime::log_component(store),
+                "logStartComponent" => runtime::log_component(store),
+                "log" => runtime::log_component(store),
+                "exceptionHandler" => runtime::exception_handler(store),
+                "showSharedRWMemory" => runtime::show_memory(store),
             }
         };
         let instance = Wasm::new(Instance::new(&module, &import_object)?);
