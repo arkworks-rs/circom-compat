@@ -5,7 +5,8 @@ edition = "2018"
 
 [dependencies]
 # WASM operations
-wasmer = { version = "2.0" }
+wasmer = { version = "2.2.1" }
+wasmer-engine-dylib = { version = "2.2.1" }
 fnv = { version = "1.0.3", default-features = false }
 num = { version = "0.4.0" }
 num-traits = { version = "0.2.0", default-features = false }
