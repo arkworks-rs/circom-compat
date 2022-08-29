@@ -13,7 +13,7 @@ pub struct CircomCircuit<E: PairingEngine> {
     pub witness: Option<Vec<E::Fr>>,
 }
 
-impl<'a, E: PairingEngine> CircomCircuit<E> {
+impl<E: PairingEngine> CircomCircuit<E> {
     pub fn get_public_inputs(&self) -> Option<Vec<E::Fr>> {
         match &self.witness {
             None => None,
