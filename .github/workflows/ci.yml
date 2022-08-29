@@ -19,21 +19,11 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Install node
-        uses: actions/setup-node@v1
+      # Install for Anvil
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
         with:
-          node-version: 10
-
-      - name: Install ganache
-        run: npm install -g ganache-cli
-
-      - name: Install Solc
-        run: |
-            mkdir -p "$HOME/bin"
-            wget -q https://github.com/ethereum/solidity/releases/download/v0.7.6/solc-static-linux -O $HOME/bin/solc
-            chmod u+x "$HOME/bin/solc"
-            export PATH=$HOME/bin:$PATH
-            solc --version
+          version: nightly
 
       - uses: Swatinem/rust-cache@v1
         with:
