@@ -56,7 +56,7 @@ fn groth16_proof_wrong_input() {
     let mut rng = thread_rng();
     let _params = generate_random_parameters::<Bn254, _, _>(circom, &mut rng).unwrap();
 
-    builder.build().unwrap_err();
+    let _ = builder.build().unwrap_err();
 }
 
 #[test]
