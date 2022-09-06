@@ -87,7 +87,6 @@ dependencies = [
  "color-eyre",
  "criterion",
  "ethers",
- "ethers-core",
  "fnv",
  "hex",
  "hex-literal",
