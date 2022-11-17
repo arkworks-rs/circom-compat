@@ -26,7 +26,7 @@ impl From<G1> for G1Affine {
     fn from(src: G1) -> G1Affine {
         let x: Fq = u256_to_point(src.x);
         let y: Fq = u256_to_point(src.y);
-        let inf = x.is_zero() && y.is_zero();
+        let inf = x.is_zero() || y.is_zero();
         G1Affine::new(x, y, inf)
     }
 }
@@ -64,7 +64,7 @@ impl From<G2> for G2Affine {
         let c1 = u256_to_point(src.y[1]);
         let y = Fq2::new(c0, c1);
 
-        let inf = x.is_zero() && y.is_zero();
+        let inf = x.is_zero() || y.is_zero();
         G2Affine::new(x, y, inf)
     }
 }
@@ -237,6 +237,14 @@ mod tests {
     }
 
     #[test]
+    fn convert_infinity_g1() {
+        let g1 = G1Affine::default();
+        let g1_eth = G1::from(&g1);
+        let g1_2 = G1Affine::from(g1_eth);
+        assert_eq!(g1, g1_2);
+    }
+
+    #[test]
     fn convert_g2() {
         let el = g2();
         let el2 = G2::from(&el);
@@ -244,6 +252,14 @@ mod tests {
         let el4 = G2::from(&el3);
         assert_eq!(el, el3);
         assert_eq!(el2, el4);
+    }
+
+    #[test]
+    fn convert_infinity_g2() {
+        let g2 = G2Affine::default();
+        let g2_eth = G2::from(&g2);
+        let g2_2 = G2Affine::from(g2_eth);
+        assert_eq!(g2, g2_2);
     }
 
     #[test]
