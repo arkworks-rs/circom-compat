@@ -196,7 +196,7 @@ impl WitnessCalculator {
             for (i, value) in values.into_iter().enumerate() {
                 self.memory.write_fr(p_fr as usize, &value)?;
                 self.instance
-                    .set_signal(0, 0, (sig_offset + i) as u32, p_fr as u32)?;
+                    .set_signal(0, 0, (sig_offset + i) as u32, p_fr)?;
             }
         }
 
@@ -341,7 +341,7 @@ mod runtime {
         fn func() {}
         Function::new_native(store, func)
     }
-    
+
     // Circom 2.0
     pub fn write_buffer_message(store: &Store) -> Function {
         #[allow(unused)]
