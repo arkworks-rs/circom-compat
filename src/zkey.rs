@@ -25,7 +25,7 @@
 //!  PointsC(8)
 //!  PointsH(9)
 //!  Contributions(10)
-use ark_ff::{BigInteger256, FromBytes, PrimeField};
+use ark_ff::{BigInteger256, PrimeField};
 use ark_relations::r1cs::ConstraintMatrices;
 use ark_serialize::{CanonicalDeserialize, SerializationError};
 use ark_std::log2;

@@ -4,16 +4,17 @@
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::io::{Error, ErrorKind, Result};
 
-use ark_ec::PairingEngine;
-use ark_ff::FromBytes;
+use ark_ec::pairing::Pairing;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read as SerializeRead};
 use ark_std::io::{Read, Seek, SeekFrom};
+use ark_std::Zero;
 
 use std::collections::HashMap;
 
 use super::{ConstraintVec, Constraints};
 
 #[derive(Clone, Debug)]
-pub struct R1CS<E: PairingEngine> {
+pub struct R1CS<E: Pairing> {
     pub num_inputs: usize,
     pub num_aux: usize,
     pub num_variables: usize,
@@ -21,7 +22,7 @@ pub struct R1CS<E: PairingEngine> {
     pub wire_mapping: Option<Vec<usize>>,
 }
 
-impl<E: PairingEngine> From<R1CSFile<E>> for R1CS<E> {
+impl<E: Pairing> From<R1CSFile<E>> for R1CS<E> {
     fn from(file: R1CSFile<E>) -> Self {
         let num_inputs = (1 + file.header.n_pub_in + file.header.n_pub_out) as usize;
         let num_variables = file.header.n_wires as usize;
@@ -36,14 +37,14 @@ impl<E: PairingEngine> From<R1CSFile<E>> for R1CS<E> {
     }
 }
 
-pub struct R1CSFile<E: PairingEngine> {
+pub struct R1CSFile<E: Pairing> {
     pub version: u32,
     pub header: Header,
     pub constraints: Vec<Constraints<E>>,
     pub wire_mapping: Vec<u64>,
 }
 
-impl<E: PairingEngine> R1CSFile<E> {
+impl<E: Pairing> R1CSFile<E> {
     /// reader must implement the Seek trait, for example with a Cursor
     ///
     /// ```rust,ignore
@@ -53,7 +54,6 @@ impl<E: PairingEngine> R1CSFile<E> {
         let mut magic = [0u8; 4];
         reader.read_exact(&mut magic)?;
         if magic != [0x72, 0x31, 0x63, 0x73] {
-            // magic = "r1cs"
             return Err(Error::new(ErrorKind::InvalidData, "Invalid magic number"));
         }
 
@@ -170,6 +170,7 @@ impl Header {
         let mut prime_size = vec![0u8; field_size as usize];
         reader.read_exact(&mut prime_size)?;
 
+        println!("reading the prime");
         if prime_size
             != hex::decode("010000f093f5e1439170b97948e833285d588181b64550b829a031e1724e6430")
                 .unwrap()
@@ -193,19 +194,25 @@ impl Header {
     }
 }
 
-fn read_constraint_vec<R: Read, E: PairingEngine>(mut reader: R) -> Result<ConstraintVec<E>> {
+fn read_constraint_vec<R: Read, E: Pairing>(mut reader: R, header: &Header) -> Result<ConstraintVec<E>> {
     let n_vec = reader.read_u32::<LittleEndian>()? as usize;
     let mut vec = Vec::with_capacity(n_vec);
     for _ in 0..n_vec {
+        let idx = reader.read_u32::<LittleEndian>()? as usize;
+
+        println!("{} {}", E::ScalarField::zero().uncompressed_size(), header.field_size);
+        let mut buf = Vec::with_capacity(header.field_size as usize);
+        reader.read(&mut buf)?;
+        let field_elt = E::ScalarField::deserialize_uncompressed(buf.as_slice()).unwrap();
         vec.push((
-            reader.read_u32::<LittleEndian>()? as usize,
-            E::Fr::read(&mut reader)?,
+            idx,
+            field_elt,
         ));
     }
     Ok(vec)
 }
 
-fn read_constraints<R: Read, E: PairingEngine>(
+fn read_constraints<R: Read, E: Pairing>(
     mut reader: R,
     header: &Header,
 ) -> Result<Vec<Constraints<E>>> {
@@ -213,9 +220,9 @@ fn read_constraints<R: Read, E: PairingEngine>(
     let mut vec = Vec::with_capacity(header.n_constraints as usize);
     for _ in 0..header.n_constraints {
         vec.push((
-            read_constraint_vec::<&mut R, E>(&mut reader)?,
-            read_constraint_vec::<&mut R, E>(&mut reader)?,
-            read_constraint_vec::<&mut R, E>(&mut reader)?,
+            read_constraint_vec::<&mut R, E>(&mut reader, header)?,
+            read_constraint_vec::<&mut R, E>(&mut reader, header)?,
+            read_constraint_vec::<&mut R, E>(&mut reader, header)?,
         ));
     }
     Ok(vec)

@@ -1,10 +1,12 @@
 //! Safe-ish interface for reading and writing specific types to the WASM runtime's memory
+use ark_serialize::CanonicalDeserialize;
 use num_traits::ToPrimitive;
 use wasmer::{Memory, MemoryView};
 
 // TODO: Decide whether we want Ark here or if it should use a generic BigInt package
-use ark_bn254::FrParameters;
-use ark_ff::{BigInteger, BigInteger256, FpParameters, FromBytes, Zero};
+use ark_bn254::FrConfig;
+use ark_ff::{BigInteger, BigInteger256, FpConfig, Zero};
+use ark_ff::MontConfig;
 
 use num_bigint::{BigInt, BigUint};
 
@@ -38,7 +40,7 @@ impl SafeMemory {
         let short_max = BigInt::from(0x8000_0000u64);
         let short_min = BigInt::from_biguint(
             num_bigint::Sign::NoSign,
-            BigUint::try_from(FrParameters::MODULUS).unwrap(),
+            BigUint::try_from(FrConfig::MODULUS).unwrap(),
         ) - &short_max;
         let r_inv = BigInt::from_str(
             "9915499612839321149637521777990102151350674507940716049588462388200839649614",
@@ -188,7 +190,7 @@ impl SafeMemory {
         let buf = &buf[ptr..ptr + num_bytes * 32];
 
         // TODO: Is there a better way to read big integers?
-        let big = BigInteger256::read(buf).unwrap();
+        let big = BigInteger256::deserialize_uncompressed(buf).unwrap();
         let big = BigUint::try_from(big).unwrap();
         Ok(big.into())
     }

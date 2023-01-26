@@ -1,4 +1,5 @@
 use super::{fnv, CircomBase, SafeMemory, Wasm};
+use ark_bn254::Config;
 use color_eyre::Result;
 use num_bigint::BigInt;
 use num_traits::Zero;
@@ -258,16 +259,16 @@ impl WitnessCalculator {
     }
 
     pub fn calculate_witness_element<
-        E: ark_ec::PairingEngine,
+        E: ark_ec::pairing::Pairing,
         I: IntoIterator<Item = (String, Vec<BigInt>)>,
     >(
         &mut self,
         inputs: I,
         sanity_check: bool,
-    ) -> Result<Vec<E::Fr>> {
-        use ark_ff::{FpParameters, PrimeField};
+    ) -> Result<Vec<E::ScalarField>> {
+        use ark_ff::{FpConfig, PrimeField};
         let witness = self.calculate_witness(inputs, sanity_check)?;
-        let modulus = <<E::Fr as PrimeField>::Params as FpParameters>::MODULUS;
+        let modulus = <E::ScalarField as PrimeField>::MODULUS;
 
         // convert it to field elements
         use num_traits::Signed;
@@ -280,7 +281,7 @@ impl WitnessCalculator {
                 } else {
                     w.to_biguint().unwrap()
                 };
-                E::Fr::from(w)
+                E::ScalarField::from(w)
             })
             .collect::<Vec<_>>();
 

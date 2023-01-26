@@ -5,9 +5,9 @@ mod witness;
 pub use witness::WitnessCalculator;
 
 pub mod circom;
-pub use circom::{CircomBuilder, CircomCircuit, CircomConfig, CircomReduction};
+pub use circom::{CircomBuilder, CircomCircuit, CircomConfig};
 
-pub mod ethereum;
+// pub mod ethereum;
 
-mod zkey;
-pub use zkey::read_zkey;
+// mod zkey;
+// pub use zkey::read_zkey;

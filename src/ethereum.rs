@@ -1,6 +1,6 @@
 //! Helpers for converting Arkworks types to U256-tuples as expected by the
 //! Solidity Groth16 Verifier smart contracts
-use ark_ff::{BigInteger, FromBytes, PrimeField};
+use ark_ff::{BigInteger, PrimeField};
 use ethers_core::types::U256;
 use num_traits::Zero;
 
@@ -27,7 +27,7 @@ impl From<G1> for G1Affine {
         let x: Fq = u256_to_point(src.x);
         let y: Fq = u256_to_point(src.y);
         let inf = x.is_zero() && y.is_zero();
-        G1Affine::new(x, y, inf)
+        G1Affine::new(x, y)
     }
 }
 
