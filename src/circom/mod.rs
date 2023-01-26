@@ -1,7 +1,6 @@
 use ark_ec::pairing::Pairing;
 
 pub mod r1cs_reader;
-use ethers_core::k256::Scalar;
 pub use r1cs_reader::{R1CSFile, R1CS};
 
 mod circuit;

@@ -170,7 +170,6 @@ impl Header {
         let mut prime_size = vec![0u8; field_size as usize];
         reader.read_exact(&mut prime_size)?;
 
-        println!("reading the prime");
         if prime_size
             != hex::decode("010000f093f5e1439170b97948e833285d588181b64550b829a031e1724e6430")
                 .unwrap()
@@ -199,9 +198,7 @@ fn read_constraint_vec<R: Read, E: Pairing>(mut reader: R, header: &Header) -> R
     let mut vec = Vec::with_capacity(n_vec);
     for _ in 0..n_vec {
         let idx = reader.read_u32::<LittleEndian>()? as usize;
-
-        println!("{} {}", E::ScalarField::zero().uncompressed_size(), header.field_size);
-        let mut buf = Vec::with_capacity(header.field_size as usize);
+        let mut buf = [0; 32];
         reader.read(&mut buf)?;
         let field_elt = E::ScalarField::deserialize_uncompressed(buf.as_slice()).unwrap();
         vec.push((
