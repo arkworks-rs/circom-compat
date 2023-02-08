@@ -142,6 +142,7 @@ impl WitnessCalculator {
 
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
+                println!("got here");
                 match version {
                     2 => new_circom2(instance, memory, version),
                     1 => new_circom1(instance, memory, version),
