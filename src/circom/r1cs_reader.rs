@@ -73,7 +73,7 @@ impl<E: PairingEngine> R1CSFile<E> {
         for _ in 0..num_sections {
             let sec_type = reader.read_u32::<LittleEndian>()?;
             let sec_size = reader.read_u64::<LittleEndian>()?;
-            let offset = reader.seek(SeekFrom::Current(0))?;
+            let offset = reader.stream_position()?;
             sec_offsets.insert(sec_type, offset);
             sec_sizes.insert(sec_type, sec_size);
             reader.seek(SeekFrom::Current(sec_size as i64))?;

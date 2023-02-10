@@ -194,7 +194,7 @@ impl WitnessCalculator {
             for (i, value) in values.into_iter().enumerate() {
                 self.memory.write_fr(p_fr as usize, &value)?;
                 self.instance
-                    .set_signal(0, 0, (sig_offset + i) as u32, p_fr as u32)?;
+                    .set_signal(0, 0, (sig_offset + i) as u32, p_fr)?;
             }
         }
 
@@ -311,8 +311,7 @@ mod runtime {
             // NOTE: We can also get more information why it is failing, see p2str etc here:
             // https://github.com/iden3/circom_runtime/blob/master/js/witness_calculator.js#L52-L64
             println!(
-                "runtime error, exiting early: {0} {1} {2} {3} {4} {5}",
-                a, b, c, d, e, f
+                "runtime error, exiting early: {a} {b} {c} {d} {e} {f}",
             );
             Err(RuntimeError::user(Box::new(ExitCode(1))))
         }
