@@ -39,7 +39,7 @@ fn from_array32(arr: Vec<u32>) -> BigInt {
 
 #[cfg(feature = "circom-2")]
 fn to_array32(s: &BigInt, size: usize) -> Vec<u32> {
-    let mut res = vec![0; size as usize];
+    let mut res = vec![0; size];
     let mut rem = s.clone();
     let radix = BigInt::from(0x100000000u64);
     let mut c = size;
@@ -232,13 +232,10 @@ impl WitnessCalculator {
             for (i, value) in values.into_iter().enumerate() {
                 let f_arr = to_array32(&value, n32 as usize);
                 for j in 0..n32 {
-                    self.instance.write_shared_rw_memory(
-                        j as u32,
-                        f_arr[(n32 as usize) - 1 - (j as usize)],
-                    )?;
+                    self.instance
+                        .write_shared_rw_memory(j, f_arr[(n32 as usize) - 1 - (j as usize)])?;
                 }
-                self.instance
-                    .set_input_signal(msb as u32, lsb as u32, i as u32)?;
+                self.instance.set_input_signal(msb, lsb, i as u32)?;
             }
         }
 
@@ -312,9 +309,7 @@ mod runtime {
         fn func(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32) -> Result<(), RuntimeError> {
             // NOTE: We can also get more information why it is failing, see p2str etc here:
             // https://github.com/iden3/circom_runtime/blob/master/js/witness_calculator.js#L52-L64
-            println!(
-                "runtime error, exiting early: {a} {b} {c} {d} {e} {f}",
-            );
+            println!("runtime error, exiting early: {a} {b} {c} {d} {e} {f}",);
             Err(RuntimeError::user(Box::new(ExitCode(1))))
         }
         Function::new_native(store, func)
