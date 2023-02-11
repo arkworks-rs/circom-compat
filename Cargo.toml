@@ -26,11 +26,12 @@ hex = "0.4.3"
 byteorder = "1.4.3"
 
 # ethereum compat
-ethers-core = { git = "https://github.com/gakonst/ethers-rs", default-features = false }
+ethers-core = { git = "https://github.com/gakonst/ethers-rs", default-features = false, optional = true }
+ethers = { git = "https://github.com/gakonst/ethers-rs", features = ["abigen"], optional = true }
 
 # error handling
 thiserror = "1.0.26"
-color-eyre = "0.5"
+color-eyre = "0.6.1"
 criterion = "0.3.4"
 
 cfg-if = "1.0"
@@ -39,7 +40,6 @@ cfg-if = "1.0"
 hex-literal = "0.2.1"
 tokio = { version = "1.7.1", features = ["macros"] }
 serde_json = "1.0.64"
-ethers = { git = "https://github.com/gakonst/ethers-rs", features = ["abigen"] }
 
 [[bench]]
 name = "groth16"
@@ -48,3 +48,5 @@ harness = false
 [features]
 bench-complex-all = []
 circom-2 = []
+full = ["ethers", "ethers-core"]
+default = ["full"]
