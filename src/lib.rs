@@ -7,7 +7,7 @@ pub use witness::WitnessCalculator;
 pub mod circom;
 pub use circom::{CircomBuilder, CircomCircuit, CircomConfig, CircomReduction};
 
-#[cfg(feature = "full")]
+#[cfg(feature = "ethereum")]
 pub mod ethereum;
 
 mod zkey;
