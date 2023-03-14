@@ -5,9 +5,8 @@ use byteorder::{LittleEndian, ReadBytesExt};
 use std::io::{Error, ErrorKind, Result};
 
 use ark_ec::pairing::Pairing;
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read as SerializeRead};
+use ark_serialize::{CanonicalDeserialize};
 use ark_std::io::{Read, Seek, SeekFrom};
-use ark_std::Zero;
 
 use std::collections::HashMap;
 
@@ -73,7 +72,7 @@ impl<E: Pairing> R1CSFile<E> {
         for _ in 0..num_sections {
             let sec_type = reader.read_u32::<LittleEndian>()?;
             let sec_size = reader.read_u64::<LittleEndian>()?;
-            let offset = reader.seek(SeekFrom::Current(0))?;
+            let offset = reader.stream_position()?;
             sec_offsets.insert(sec_type, offset);
             sec_sizes.insert(sec_type, sec_size);
             reader.seek(SeekFrom::Current(sec_size as i64))?;
@@ -193,7 +192,7 @@ impl Header {
     }
 }
 
-fn read_constraint_vec<R: Read, E: Pairing>(mut reader: R, header: &Header) -> Result<ConstraintVec<E>> {
+fn read_constraint_vec<R: Read, E: Pairing>(mut reader: R) -> Result<ConstraintVec<E>> {
     let n_vec = reader.read_u32::<LittleEndian>()? as usize;
     let mut vec = Vec::with_capacity(n_vec);
     for _ in 0..n_vec {
@@ -217,9 +216,9 @@ fn read_constraints<R: Read, E: Pairing>(
     let mut vec = Vec::with_capacity(header.n_constraints as usize);
     for _ in 0..header.n_constraints {
         vec.push((
-            read_constraint_vec::<&mut R, E>(&mut reader, header)?,
-            read_constraint_vec::<&mut R, E>(&mut reader, header)?,
-            read_constraint_vec::<&mut R, E>(&mut reader, header)?,
+            read_constraint_vec::<&mut R, E>(&mut reader)?,
+            read_constraint_vec::<&mut R, E>(&mut reader)?,
+            read_constraint_vec::<&mut R, E>(&mut reader)?,
         ));
     }
     Ok(vec)
