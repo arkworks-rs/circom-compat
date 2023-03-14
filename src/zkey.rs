@@ -27,18 +27,20 @@
 //!  Contributions(10)
 use ark_ff::{BigInteger256, PrimeField};
 use ark_relations::r1cs::ConstraintMatrices;
-use ark_serialize::{CanonicalDeserialize};
+use ark_serialize::{CanonicalDeserialize, SerializationError};
 use ark_std::log2;
 use byteorder::{LittleEndian, ReadBytesExt};
 
 use std::{
     collections::HashMap,
-    io::{Read, Result as IoResult, Seek, SeekFrom},
+    io::{Read, Seek, SeekFrom},
 };
 
 use ark_bn254::{Bn254, Fq, Fq2, Fr, G1Affine, G2Affine};
 use ark_groth16::{ProvingKey, VerifyingKey};
 use num_traits::Zero;
+
+type IoResult<T> = Result<T, SerializationError>;
 
 #[derive(Clone, Debug)]
 struct Section {
@@ -285,18 +287,18 @@ impl HeaderGroth {
 
     fn read<R: Read>(mut reader: &mut R) -> IoResult<Self> {
         // TODO: Impl From<u32> in Arkworks
-        let n8q: u32 = u32::deserialize_uncompressed(&mut reader).unwrap();
+        let n8q: u32 = u32::deserialize_uncompressed(&mut reader)?;
         // group order r of Bn254
-        let q = BigInteger256::deserialize_uncompressed(&mut reader).unwrap();
+        let q = BigInteger256::deserialize_uncompressed(&mut reader)?;
 
-        let n8r: u32 = u32::deserialize_uncompressed(&mut reader).unwrap();
+        let n8r: u32 = u32::deserialize_uncompressed(&mut reader)?;
         // Prime field modulus
-        let r = BigInteger256::deserialize_uncompressed(&mut reader).unwrap();
+        let r = BigInteger256::deserialize_uncompressed(&mut reader)?;
 
-        let n_vars = u32::deserialize_uncompressed(&mut reader).unwrap() as usize;
-        let n_public = u32::deserialize_uncompressed(&mut reader).unwrap() as usize;
+        let n_vars = u32::deserialize_uncompressed(&mut reader)? as usize;
+        let n_public = u32::deserialize_uncompressed(&mut reader)? as usize;
 
-        let domain_size: u32 = u32::deserialize_uncompressed(&mut reader).unwrap();
+        let domain_size: u32 = u32::deserialize_uncompressed(&mut reader)?;
         let power = log2(domain_size as usize);
 
         let verifying_key = ZVerifyingKey::new(&mut reader)?;
@@ -318,14 +320,13 @@ impl HeaderGroth {
 // need to divide by R, since snarkjs outputs the zkey with coefficients
 // multiplieid by R^2
 fn deserialize_field_fr<R: Read>(reader: &mut R) -> IoResult<Fr> {
-    let bigint = BigInteger256::deserialize_uncompressed(reader).unwrap();
-    Ok(Fr::new(Fr::new(bigint).into_bigint()))
-    // Ok(Fr::new(Fr::new(bigint).into_repr()))
+    let bigint = BigInteger256::deserialize_uncompressed(reader)?;
+    Ok(Fr::new_unchecked(Fr::new_unchecked(bigint).into_bigint()))
 }
 
 // skips the multiplication by R because Circom points are already in Montgomery form
 fn deserialize_field<R: Read>(reader: &mut R) -> IoResult<Fq> {
-    let bigint = BigInteger256::deserialize_uncompressed(reader).unwrap();
+    let bigint = BigInteger256::deserialize_uncompressed(reader)?;
     // if you use Fq::new it multiplies by R
     Ok(Fq::new_unchecked(bigint))
 }

@@ -1,5 +1,5 @@
 use super::{fnv, CircomBase, SafeMemory, Wasm};
-use ark_bn254::Config;
+use ark_bn254::{Config, FrConfig};
 use color_eyre::Result;
 use num_bigint::BigInt;
 use num_traits::Zero;

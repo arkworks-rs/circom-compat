@@ -50,4 +50,4 @@ harness = false
 bench-complex-all = []
 circom-2 = []
 ethereum = ["ethers-core"]
-default = ["ethereum"]
+default = ["circom-2"]
