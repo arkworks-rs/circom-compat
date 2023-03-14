@@ -27,7 +27,7 @@
 //!  Contributions(10)
 use ark_ff::{BigInteger256, PrimeField};
 use ark_relations::r1cs::ConstraintMatrices;
-use ark_serialize::{CanonicalDeserialize, SerializationError};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::log2;
 use byteorder::{LittleEndian, ReadBytesExt};
 
@@ -285,18 +285,18 @@ impl HeaderGroth {
 
     fn read<R: Read>(mut reader: &mut R) -> IoResult<Self> {
         // TODO: Impl From<u32> in Arkworks
-        let n8q: u32 = FromBytes::read(&mut reader)?;
+        let n8q: u32 = u32::deserialize_uncompressed(&mut reader).unwrap();
         // group order r of Bn254
-        let q = BigInteger256::read(&mut reader)?;
+        let q = BigInteger256::deserialize_uncompressed(&mut reader).unwrap();
 
-        let n8r: u32 = FromBytes::read(&mut reader)?;
+        let n8r: u32 = u32::deserialize_uncompressed(&mut reader).unwrap();
         // Prime field modulus
-        let r = BigInteger256::read(&mut reader)?;
+        let r = BigInteger256::deserialize_uncompressed(&mut reader).unwrap();
 
-        let n_vars = u32::read(&mut reader)? as usize;
-        let n_public = u32::read(&mut reader)? as usize;
+        let n_vars = u32::deserialize_uncompressed(&mut reader).unwrap() as usize;
+        let n_public = u32::deserialize_uncompressed(&mut reader).unwrap() as usize;
 
-        let domain_size: u32 = FromBytes::read(&mut reader)?;
+        let domain_size: u32 = u32::deserialize_uncompressed(&mut reader).unwrap();
         let power = log2(domain_size as usize);
 
         let verifying_key = ZVerifyingKey::new(&mut reader)?;
@@ -318,15 +318,16 @@ impl HeaderGroth {
 // need to divide by R, since snarkjs outputs the zkey with coefficients
 // multiplieid by R^2
 fn deserialize_field_fr<R: Read>(reader: &mut R) -> IoResult<Fr> {
-    let bigint = BigInteger256::read(reader)?;
-    Ok(Fr::new(Fr::new(bigint).into_repr()))
+    let bigint = BigInteger256::deserialize_uncompressed(reader).unwrap();
+    Ok(Fr::new(Fr::new(bigint).into_bigint()))
+    // Ok(Fr::new(Fr::new(bigint).into_repr()))
 }
 
 // skips the multiplication by R because Circom points are already in Montgomery form
 fn deserialize_field<R: Read>(reader: &mut R) -> IoResult<Fq> {
-    let bigint = BigInteger256::read(reader)?;
-    // if you use ark_ff::PrimeField::from_repr it multiplies by R
-    Ok(Fq::new(bigint))
+    let bigint = BigInteger256::deserialize_uncompressed(reader).unwrap();
+    // if you use Fq::new it multiplies by R
+    Ok(Fq::new_unchecked(bigint))
 }
 
 pub fn deserialize_field2<R: Read>(reader: &mut R) -> IoResult<Fq2> {
@@ -338,15 +339,13 @@ pub fn deserialize_field2<R: Read>(reader: &mut R) -> IoResult<Fq2> {
 fn deserialize_g1<R: Read>(reader: &mut R) -> IoResult<G1Affine> {
     let x = deserialize_field(reader)?;
     let y = deserialize_field(reader)?;
-    let infinity = x.is_zero() && y.is_zero();
-    Ok(G1Affine::new(x, y, infinity))
+    Ok(G1Affine::new(x, y))
 }
 
 fn deserialize_g2<R: Read>(reader: &mut R) -> IoResult<G2Affine> {
     let f1 = deserialize_field2(reader)?;
     let f2 = deserialize_field2(reader)?;
-    let infinity = f1.is_zero() && f2.is_zero();
-    Ok(G2Affine::new(f1, f2, infinity))
+    Ok(G2Affine::new(f1, f2))
 }
 
 fn deserialize_g1_vec<R: Read>(reader: &mut R, n_vars: u32) -> IoResult<Vec<G1Affine>> {
@@ -361,15 +360,15 @@ fn deserialize_g2_vec<R: Read>(reader: &mut R, n_vars: u32) -> IoResult<Vec<G2Af
 mod tests {
     use super::*;
     use ark_bn254::{G1Projective, G2Projective};
+    use ark_crypto_primitives::snark::SNARK;
     use num_bigint::BigUint;
     use serde_json::Value;
     use std::fs::File;
 
     use crate::witness::WitnessCalculator;
-    use crate::{circom::CircomReduction, CircomBuilder, CircomConfig};
+    use crate::{CircomBuilder, CircomConfig};
     use ark_groth16::{
-        create_proof_with_reduction_and_matrices, create_random_proof_with_reduction as prove,
-        prepare_verifying_key, verify_proof,
+        Groth16, prepare_verifying_key,
     };
     use ark_std::rand::thread_rng;
     use num_traits::{One, Zero};
@@ -853,11 +852,11 @@ mod tests {
         let inputs = circom.get_public_inputs().unwrap();
 
         let mut rng = thread_rng();
-        let proof = prove::<_, _, _, CircomReduction>(circom, &params, &mut rng).unwrap();
+        let proof = Groth16::<Bn254>::prove(&params, circom, &mut rng).unwrap();
 
         let pvk = prepare_verifying_key(&params.vk);
 
-        let verified = verify_proof(&pvk, &proof, &inputs).unwrap();
+        let verified = Groth16::<Bn254>::verify_with_processed_vk(&pvk, &inputs, &proof).unwrap();
 
         assert!(verified);
     }
@@ -888,7 +887,7 @@ mod tests {
         let full_assignment = wtns
             .calculate_witness_element::<Bn254, _>(inputs, false)
             .unwrap();
-        let proof = create_proof_with_reduction_and_matrices::<_, CircomReduction>(
+        let proof = Groth16::<Bn254>::create_proof_with_reduction_and_matrices(
             &params,
             r,
             s,
@@ -901,7 +900,7 @@ mod tests {
 
         let pvk = prepare_verifying_key(&params.vk);
         let inputs = &full_assignment[1..num_inputs];
-        let verified = verify_proof(&pvk, &proof, inputs).unwrap();
+        let verified = Groth16::<Bn254>::verify_with_processed_vk(&pvk, inputs, &proof).unwrap();
 
         assert!(verified);
     }

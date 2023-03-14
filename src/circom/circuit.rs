@@ -91,8 +91,8 @@ mod tests {
     #[test]
     fn satisfied() {
         let cfg = CircomConfig::<Bn254>::new(
-            "./test-vectors/mycircuit2.wasm",
-            "./test-vectors/mycircuit2.r1cs",
+            "./test-vectors/mycircuit.wasm",
+            "./test-vectors/mycircuit.r1cs",
         )
         .unwrap();
         let mut builder = CircomBuilder::new(cfg);

@@ -1,10 +1,11 @@
+use ark_crypto_primitives::snark::SNARK;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use ark_circom::{read_zkey, CircomReduction, WitnessCalculator};
+use ark_circom::{read_zkey, WitnessCalculator};
 use ark_std::rand::thread_rng;
 
 use ark_bn254::Bn254;
-use ark_groth16::{create_proof_with_reduction_and_matrices, prepare_verifying_key, verify_proof};
+use ark_groth16::{Groth16, prepare_verifying_key};
 
 use std::{collections::HashMap, fs::File};
 
@@ -44,7 +45,7 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
     let r = ark_bn254::Fr::rand(rng);
     let s = ark_bn254::Fr::rand(rng);
 
-    let proof = create_proof_with_reduction_and_matrices::<_, CircomReduction>(
+    let proof = Groth16::<Bn254>::create_proof_with_reduction_and_matrices(
         &params,
         r,
         s,
@@ -57,14 +58,14 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
 
     let pvk = prepare_verifying_key(&params.vk);
     let inputs = &full_assignment[1..num_inputs];
-    let verified = verify_proof(&pvk, &proof, inputs).unwrap();
+    let verified = Groth16::<Bn254>::verify_with_processed_vk(&pvk, inputs, &proof).unwrap();
 
     assert!(verified);
 
     c.bench_function(&format!("groth proof {} {}", i, j), |b| {
         b.iter(|| {
             black_box(
-                create_proof_with_reduction_and_matrices::<_, CircomReduction>(
+                Groth16::<Bn254>::create_proof_with_reduction_and_matrices(
                     &params,
                     r,
                     s,
