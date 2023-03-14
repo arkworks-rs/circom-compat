@@ -27,7 +27,7 @@
 //!  Contributions(10)
 use ark_ff::{BigInteger256, PrimeField};
 use ark_relations::r1cs::ConstraintMatrices;
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use ark_serialize::{CanonicalDeserialize};
 use ark_std::log2;
 use byteorder::{LittleEndian, ReadBytesExt};
 
@@ -339,13 +339,23 @@ pub fn deserialize_field2<R: Read>(reader: &mut R) -> IoResult<Fq2> {
 fn deserialize_g1<R: Read>(reader: &mut R) -> IoResult<G1Affine> {
     let x = deserialize_field(reader)?;
     let y = deserialize_field(reader)?;
-    Ok(G1Affine::new(x, y))
+    let infinity = x.is_zero() && y.is_zero();
+    if infinity {
+        Ok(G1Affine::identity())
+    } else {
+        Ok(G1Affine::new(x, y))
+    }
 }
 
 fn deserialize_g2<R: Read>(reader: &mut R) -> IoResult<G2Affine> {
     let f1 = deserialize_field2(reader)?;
     let f2 = deserialize_field2(reader)?;
-    Ok(G2Affine::new(f1, f2))
+    let infinity = f1.is_zero() && f2.is_zero();
+    if infinity {
+        Ok(G2Affine::identity())
+    } else {
+        Ok(G2Affine::new(f1, f2))
+    }
 }
 
 fn deserialize_g1_vec<R: Read>(reader: &mut R, n_vars: u32) -> IoResult<Vec<G1Affine>> {
@@ -365,6 +375,7 @@ mod tests {
     use serde_json::Value;
     use std::fs::File;
 
+    use crate::circom::CircomReduction;
     use crate::witness::WitnessCalculator;
     use crate::{CircomBuilder, CircomConfig};
     use ark_groth16::{
@@ -852,7 +863,7 @@ mod tests {
         let inputs = circom.get_public_inputs().unwrap();
 
         let mut rng = thread_rng();
-        let proof = Groth16::<Bn254>::prove(&params, circom, &mut rng).unwrap();
+        let proof = Groth16::<Bn254, CircomReduction>::prove(&params, circom, &mut rng).unwrap();
 
         let pvk = prepare_verifying_key(&params.vk);
 
@@ -887,7 +898,7 @@ mod tests {
         let full_assignment = wtns
             .calculate_witness_element::<Bn254, _>(inputs, false)
             .unwrap();
-        let proof = Groth16::<Bn254>::create_proof_with_reduction_and_matrices(
+        let proof = Groth16::<Bn254, CircomReduction>::create_proof_with_reduction_and_matrices(
             &params,
             r,
             s,

@@ -267,7 +267,7 @@ impl WitnessCalculator {
         inputs: I,
         sanity_check: bool,
     ) -> Result<Vec<E::ScalarField>> {
-        use ark_ff::{FpConfig, PrimeField};
+        use ark_ff::{PrimeField};
         let witness = self.calculate_witness(inputs, sanity_check)?;
         let modulus = <E::ScalarField as PrimeField>::MODULUS;
 
