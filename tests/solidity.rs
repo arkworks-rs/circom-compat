@@ -1,5 +1,5 @@
+// #[cfg(feature = "ethereum")]
 use ark_circom::{ethereum, CircomBuilder, CircomConfig};
-use ark_ec::bn::Bn;
 use ark_std::rand::thread_rng;
 use color_eyre::Result;
 

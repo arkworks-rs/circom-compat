@@ -1,11 +1,11 @@
 use ark_crypto_primitives::snark::SNARK;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use ark_circom::{read_zkey, WitnessCalculator, circom::CircomReduction};
+use ark_circom::{read_zkey, WitnessCalculator, CircomReduction};
 use ark_std::rand::thread_rng;
 
 use ark_bn254::Bn254;
-use ark_groth16::{Groth16, prepare_verifying_key};
+use ark_groth16::Groth16;
 
 use std::{collections::HashMap, fs::File};
 
@@ -56,7 +56,7 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
     )
     .unwrap();
 
-    let pvk = prepare_verifying_key(&params.vk);
+    let pvk = Groth16::<Bn254>::process_vk(&params.vk).unwrap();
     let inputs = &full_assignment[1..num_inputs];
     let verified = Groth16::<Bn254>::verify_with_processed_vk(&pvk, inputs, &proof).unwrap();
 

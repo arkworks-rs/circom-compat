@@ -18,7 +18,7 @@ ark-ff = { version = "0.4.1", default-features = false, features = ["parallel", 
 ark-std = { version = "0.4.0", default-features = false, features = ["parallel"] }
 ark-bn254 = { version = "0.4.0" }
 ark-groth16 = { version = "0.4.0", features = ["parallel"] }
-ark-poly = { version = "^0.4.0", default-features = false, features = ["parallel"] }
+ark-poly = { version = "0.4.1", default-features = false, features = ["parallel"] }
 ark-relations = { version = "0.4.0", default-features = false }
 ark-serialize = { version = "0.4.1", default-features = false }
 
@@ -50,4 +50,4 @@ harness = false
 bench-complex-all = []
 circom-2 = []
 ethereum = ["ethers-core"]
-default = ["circom-2"]
+default = ["circom-2", "ethereum"]

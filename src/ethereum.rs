@@ -177,7 +177,7 @@ fn u256_to_point<F: PrimeField>(point: U256) -> F {
     let mut buf = [0; 32];
     point.to_little_endian(&mut buf);
     let bigint = F::BigInt::deserialize_uncompressed(&buf[..]).expect("always works");
-    F::from_bigint(bigint).expect("alwasy works")
+    F::from_bigint(bigint).expect("always works")
 }
 
 // Helper for converting a PrimeField to its U256 representation for Ethereum compatibility
@@ -192,13 +192,10 @@ fn point_to_u256<F: PrimeField>(point: F) -> U256 {
 mod tests {
     use super::*;
     use ark_bn254::Fq;
+    use ark_std::UniformRand;
 
     fn fq() -> Fq {
         Fq::from(2)
-    }
-
-    fn fq2() -> Fq2 {
-        Fq2::from(2)
     }
 
     fn fr() -> Fr {
@@ -206,11 +203,14 @@ mod tests {
     }
 
     fn g1() -> G1Affine {
-        G1Affine::new(fq(), fq())
+        let rng = &mut ark_std::test_rng();
+        G1Affine::rand(rng)
     }
 
+
     fn g2() -> G2Affine {
-        G2Affine::new(fq2(), fq2())
+        let rng = &mut ark_std::test_rng();
+        G2Affine::rand(rng)
     }
 
     #[test]

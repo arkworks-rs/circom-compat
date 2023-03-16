@@ -379,9 +379,7 @@ mod tests {
     use crate::circom::CircomReduction;
     use crate::witness::WitnessCalculator;
     use crate::{CircomBuilder, CircomConfig};
-    use ark_groth16::{
-        Groth16, prepare_verifying_key,
-    };
+    use ark_groth16::Groth16;
     use ark_std::rand::thread_rng;
     use num_traits::{One, Zero};
     use std::str::FromStr;
@@ -866,7 +864,7 @@ mod tests {
         let mut rng = thread_rng();
         let proof = Groth16::<Bn254, CircomReduction>::prove(&params, circom, &mut rng).unwrap();
 
-        let pvk = prepare_verifying_key(&params.vk);
+        let pvk = Groth16::<Bn254>::process_vk(&params.vk).unwrap();
 
         let verified = Groth16::<Bn254>::verify_with_processed_vk(&pvk, &inputs, &proof).unwrap();
 
@@ -910,7 +908,7 @@ mod tests {
         )
         .unwrap();
 
-        let pvk = prepare_verifying_key(&params.vk);
+        let pvk = Groth16::<Bn254>::process_vk(&params.vk).unwrap();
         let inputs = &full_assignment[1..num_inputs];
         let verified = Groth16::<Bn254>::verify_with_processed_vk(&pvk, inputs, &proof).unwrap();
 

@@ -35,7 +35,7 @@ let circom = builder.setup();
 
 // Run a trusted setup
 let mut rng = thread_rng();
-let params = generate_random_parameters::<Bn254, _, _>(circom, &mut rng)?;
+let params = generate_random_parameters_with_reduction(circom, &mut rng)?;
 
 // Get the populated instance of the circuit with the witness
 let circom = builder.build()?;
@@ -43,11 +43,11 @@ let circom = builder.build()?;
 let inputs = circom.get_public_inputs().unwrap();
 
 // Generate the proof
-let proof = prove(circom, &params, &mut rng)?;
+let proof = prove(&params, circom, &mut rng)?;
 
 // Check that the proof is valid
-let pvk = prepare_verifying_key(&params.vk);
-let verified = verify_proof(&pvk, &proof, &inputs)?;
+let pvk = process_vk(&params.vk)?;
+let verified = verify_with_processed_vk(&pvk, &inputs, &proof)?;
 assert!(verified);
 ```
 

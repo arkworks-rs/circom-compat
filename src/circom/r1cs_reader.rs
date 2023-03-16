@@ -2,13 +2,15 @@
 //! Copied from <https://github.com/poma/zkutil>
 //! Spec: <https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md>
 use byteorder::{LittleEndian, ReadBytesExt};
-use std::io::{Error, ErrorKind, Result};
+use std::io::{Error, ErrorKind};
 
 use ark_ec::pairing::Pairing;
-use ark_serialize::{CanonicalDeserialize};
+use ark_serialize::{CanonicalDeserialize, SerializationError, SerializationError::IoError};
 use ark_std::io::{Read, Seek, SeekFrom};
 
 use std::collections::HashMap;
+
+type IoResult<T> = Result<T, SerializationError>;
 
 use super::{ConstraintVec, Constraints};
 
@@ -49,16 +51,16 @@ impl<E: Pairing> R1CSFile<E> {
     /// ```rust,ignore
     /// let reader = BufReader::new(Cursor::new(&data[..]));
     /// ```
-    pub fn new<R: Read + Seek>(mut reader: R) -> Result<R1CSFile<E>> {
+    pub fn new<R: Read + Seek>(mut reader: R) -> IoResult<R1CSFile<E>> {
         let mut magic = [0u8; 4];
         reader.read_exact(&mut magic)?;
         if magic != [0x72, 0x31, 0x63, 0x73] {
-            return Err(Error::new(ErrorKind::InvalidData, "Invalid magic number"));
+            return Err(IoError(Error::new(ErrorKind::InvalidData, "Invalid magic number")));
         }
 
         let version = reader.read_u32::<LittleEndian>()?;
         if version != 1 {
-            return Err(Error::new(ErrorKind::InvalidData, "Unsupported version"));
+            return Err(IoError(Error::new(ErrorKind::InvalidData, "Unsupported version")));
         }
 
         let num_sections = reader.read_u32::<LittleEndian>()?;
@@ -150,20 +152,20 @@ pub struct Header {
 }
 
 impl Header {
-    fn new<R: Read>(mut reader: R, size: u64) -> Result<Header> {
+    fn new<R: Read>(mut reader: R, size: u64) -> IoResult<Header> {
         let field_size = reader.read_u32::<LittleEndian>()?;
         if field_size != 32 {
-            return Err(Error::new(
+            return Err(IoError(Error::new(
                 ErrorKind::InvalidData,
                 "This parser only supports 32-byte fields",
-            ));
+            )));
         }
 
         if size != 32 + field_size as u64 {
-            return Err(Error::new(
+            return Err(IoError(Error::new(
                 ErrorKind::InvalidData,
                 "Invalid header section size",
-            ));
+            )));
         }
 
         let mut prime_size = vec![0u8; field_size as usize];
@@ -173,10 +175,10 @@ impl Header {
             != hex::decode("010000f093f5e1439170b97948e833285d588181b64550b829a031e1724e6430")
                 .unwrap()
         {
-            return Err(Error::new(
+            return Err(IoError(Error::new(
                 ErrorKind::InvalidData,
                 "This parser only supports bn256",
-            ));
+            )));
         }
 
         Ok(Header {
@@ -192,17 +194,13 @@ impl Header {
     }
 }
 
-fn read_constraint_vec<R: Read, E: Pairing>(mut reader: R) -> Result<ConstraintVec<E>> {
+fn read_constraint_vec<R: Read, E: Pairing>(mut reader: R) -> IoResult<ConstraintVec<E>> {
     let n_vec = reader.read_u32::<LittleEndian>()? as usize;
     let mut vec = Vec::with_capacity(n_vec);
     for _ in 0..n_vec {
-        let idx = reader.read_u32::<LittleEndian>()? as usize;
-        let mut buf = [0; 32];
-        reader.read(&mut buf)?;
-        let field_elt = E::ScalarField::deserialize_uncompressed(buf.as_slice()).unwrap();
         vec.push((
-            idx,
-            field_elt,
+            reader.read_u32::<LittleEndian>()? as usize,
+            E::ScalarField::deserialize_uncompressed(&mut reader)?,
         ));
     }
     Ok(vec)
@@ -211,7 +209,7 @@ fn read_constraint_vec<R: Read, E: Pairing>(mut reader: R) -> Result<ConstraintV
 fn read_constraints<R: Read, E: Pairing>(
     mut reader: R,
     header: &Header,
-) -> Result<Vec<Constraints<E>>> {
+) -> IoResult<Vec<Constraints<E>>> {
     // todo check section size
     let mut vec = Vec::with_capacity(header.n_constraints as usize);
     for _ in 0..header.n_constraints {
@@ -224,22 +222,22 @@ fn read_constraints<R: Read, E: Pairing>(
     Ok(vec)
 }
 
-fn read_map<R: Read>(mut reader: R, size: u64, header: &Header) -> Result<Vec<u64>> {
+fn read_map<R: Read>(mut reader: R, size: u64, header: &Header) -> IoResult<Vec<u64>> {
     if size != header.n_wires as u64 * 8 {
-        return Err(Error::new(
+        return Err(IoError(Error::new(
             ErrorKind::InvalidData,
             "Invalid map section size",
-        ));
+        )));
     }
     let mut vec = Vec::with_capacity(header.n_wires as usize);
     for _ in 0..header.n_wires {
         vec.push(reader.read_u64::<LittleEndian>()?);
     }
     if vec[0] != 0 {
-        return Err(Error::new(
+        return Err(IoError(Error::new(
             ErrorKind::InvalidData,
             "Wire 0 should always be mapped to 0",
-        ));
+        )));
     }
     Ok(vec)
 }

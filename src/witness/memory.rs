@@ -5,7 +5,7 @@ use wasmer::{Memory, MemoryView};
 
 // TODO: Decide whether we want Ark here or if it should use a generic BigInt package
 use ark_bn254::FrConfig;
-use ark_ff::{BigInteger, BigInteger256, FpConfig, Zero};
+use ark_ff::{BigInteger, BigInteger256, Zero};
 use ark_ff::MontConfig;
 
 use num_bigint::{BigInt, BigUint};

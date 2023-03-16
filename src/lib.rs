@@ -5,7 +5,7 @@ mod witness;
 pub use witness::WitnessCalculator;
 
 pub mod circom;
-pub use circom::{CircomBuilder, CircomCircuit, CircomConfig};
+pub use circom::{CircomBuilder, CircomCircuit, CircomConfig, CircomReduction};
 
 #[cfg(feature = "ethereum")]
 pub mod ethereum;
