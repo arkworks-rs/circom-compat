@@ -1,11 +1,10 @@
-// #[cfg(feature = "ethereum")]
 use ark_circom::{ethereum, CircomBuilder, CircomConfig};
 use ark_std::rand::thread_rng;
 use color_eyre::Result;
 
 use ark_bn254::Bn254;
-use ark_groth16::Groth16;
 use ark_crypto_primitives::snark::SNARK;
+use ark_groth16::Groth16;
 
 use ethers::{
     contract::ContractError,

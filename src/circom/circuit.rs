@@ -26,7 +26,10 @@ impl<E: Pairing> CircomCircuit<E> {
 }
 
 impl<E: Pairing> ConstraintSynthesizer<E::ScalarField> for CircomCircuit<E> {
-    fn generate_constraints(self, cs: ConstraintSystemRef<E::ScalarField>) -> Result<(), SynthesisError> {
+    fn generate_constraints(
+        self,
+        cs: ConstraintSystemRef<E::ScalarField>,
+    ) -> Result<(), SynthesisError> {
         let witness = &self.witness;
         let wire_mapping = &self.r1cs.wire_mapping;
 
@@ -65,7 +68,9 @@ impl<E: Pairing> ConstraintSynthesizer<E::ScalarField> for CircomCircuit<E> {
         let make_lc = |lc_data: &[(usize, E::ScalarField)]| {
             lc_data.iter().fold(
                 LinearCombination::<E::ScalarField>::zero(),
-                |lc: LinearCombination<E::ScalarField>, (index, coeff)| lc + (*coeff, make_index(*index)),
+                |lc: LinearCombination<E::ScalarField>, (index, coeff)| {
+                    lc + (*coeff, make_index(*index))
+                },
             )
         };
 

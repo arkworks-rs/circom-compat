@@ -55,12 +55,18 @@ impl<E: Pairing> R1CSFile<E> {
         let mut magic = [0u8; 4];
         reader.read_exact(&mut magic)?;
         if magic != [0x72, 0x31, 0x63, 0x73] {
-            return Err(IoError(Error::new(ErrorKind::InvalidData, "Invalid magic number")));
+            return Err(IoError(Error::new(
+                ErrorKind::InvalidData,
+                "Invalid magic number",
+            )));
         }
 
         let version = reader.read_u32::<LittleEndian>()?;
         if version != 1 {
-            return Err(IoError(Error::new(ErrorKind::InvalidData, "Unsupported version")));
+            return Err(IoError(Error::new(
+                ErrorKind::InvalidData,
+                "Unsupported version",
+            )));
         }
 
         let num_sections = reader.read_u32::<LittleEndian>()?;

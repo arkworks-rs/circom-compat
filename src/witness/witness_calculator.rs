@@ -262,7 +262,7 @@ impl WitnessCalculator {
         inputs: I,
         sanity_check: bool,
     ) -> Result<Vec<E::ScalarField>> {
-        use ark_ff::{PrimeField};
+        use ark_ff::PrimeField;
         let witness = self.calculate_witness(inputs, sanity_check)?;
         let modulus = <E::ScalarField as PrimeField>::MODULUS;
 
@@ -421,7 +421,7 @@ mod tests {
     #[test]
     fn safe_multipler() {
         let witness =
-            std::fs::read_to_string(&root_path("test-vectors/safe-circuit-witness.json")).unwrap();
+            std::fs::read_to_string(root_path("test-vectors/safe-circuit-witness.json")).unwrap();
         let witness: Vec<String> = serde_json::from_str(&witness).unwrap();
         let witness = &witness.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
         run_test(TestCase {
@@ -436,7 +436,7 @@ mod tests {
     #[test]
     fn smt_verifier() {
         let witness =
-            std::fs::read_to_string(&root_path("test-vectors/smtverifier10-witness.json")).unwrap();
+            std::fs::read_to_string(root_path("test-vectors/smtverifier10-witness.json")).unwrap();
         let witness: Vec<String> = serde_json::from_str(&witness).unwrap();
         let witness = &witness.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
 
@@ -466,8 +466,8 @@ mod tests {
             wtns.memory.prime.to_str_radix(16),
             "30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001".to_lowercase()
         );
-        assert_eq!(wtns.instance.get_n_vars().unwrap() as u32, case.n_vars);
-        assert_eq!(wtns.n64 as u32, case.n64);
+        assert_eq!({ wtns.instance.get_n_vars().unwrap() }, case.n_vars);
+        assert_eq!({ wtns.n64 }, case.n64);
 
         let inputs_str = std::fs::read_to_string(case.inputs_path).unwrap();
         let inputs: std::collections::HashMap<String, serde_json::Value> =

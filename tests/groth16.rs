@@ -2,11 +2,11 @@ use ark_circom::{CircomBuilder, CircomConfig};
 use ark_std::rand::thread_rng;
 use color_eyre::Result;
 
-use ark_crypto_primitives::snark::SNARK;
 use ark_bn254::Bn254;
+use ark_crypto_primitives::snark::SNARK;
 use ark_groth16::Groth16;
 
-type GrothBn = Groth16::<Bn254>;
+type GrothBn = Groth16<Bn254>;
 
 #[test]
 fn groth16_proof() -> Result<()> {
@@ -32,7 +32,7 @@ fn groth16_proof() -> Result<()> {
 
     let pvk = GrothBn::process_vk(&params.vk).unwrap();
 
-    let verified = GrothBn::verify_with_processed_vk(&pvk,  &inputs, &proof)?;
+    let verified = GrothBn::verify_with_processed_vk(&pvk, &inputs, &proof)?;
 
     assert!(verified);
 
@@ -81,11 +81,11 @@ fn groth16_proof_circom2() -> Result<()> {
 
     let inputs = circom.get_public_inputs().unwrap();
 
-    let proof = GrothBn::prove( &params, circom, &mut rng)?;
+    let proof = GrothBn::prove(&params, circom, &mut rng)?;
 
     let pvk = GrothBn::process_vk(&params.vk).unwrap();
 
-    let verified = GrothBn::verify_with_processed_vk(&pvk,  &inputs, &proof)?;
+    let verified = GrothBn::verify_with_processed_vk(&pvk, &inputs, &proof)?;
 
     assert!(verified);
 

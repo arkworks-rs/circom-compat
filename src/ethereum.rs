@@ -27,10 +27,10 @@ impl From<G1> for G1Affine {
     fn from(src: G1) -> G1Affine {
         let x: Fq = u256_to_point(src.x);
         let y: Fq = u256_to_point(src.y);
-        if x.is_zero() && y.is_zero() { 
-            G1Affine::identity() 
-        } else { 
-            G1Affine::new(x, y) 
+        if x.is_zero() && y.is_zero() {
+            G1Affine::identity()
+        } else {
+            G1Affine::new(x, y)
         }
     }
 }
@@ -206,7 +206,6 @@ mod tests {
         let rng = &mut ark_std::test_rng();
         G1Affine::rand(rng)
     }
-
 
     fn g2() -> G2Affine {
         let rng = &mut ark_std::test_rng();

@@ -1,7 +1,7 @@
 use ark_crypto_primitives::snark::SNARK;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use ark_circom::{read_zkey, WitnessCalculator, CircomReduction};
+use ark_circom::{read_zkey, CircomReduction, WitnessCalculator};
 use ark_std::rand::thread_rng;
 
 use ark_bn254::Bn254;
@@ -16,7 +16,7 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
         "./test-vectors/complex-circuit/complex-circuit-{}-{}.zkey",
         i, j
     );
-    let mut file = File::open(&path).unwrap();
+    let mut file = File::open(path).unwrap();
     let (params, matrices) = read_zkey(&mut file).unwrap();
     let num_inputs = matrices.num_instance_variables;
     let num_constraints = matrices.num_constraints;
@@ -29,7 +29,7 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
         inputs
     };
 
-    let mut wtns = WitnessCalculator::new(&format!(
+    let mut wtns = WitnessCalculator::new(format!(
         "./test-vectors/complex-circuit/complex-circuit-{}-{}.wasm",
         i, j
     ))
