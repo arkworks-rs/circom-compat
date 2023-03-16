@@ -1,5 +1,5 @@
 use ark_ff::PrimeField;
-use ark_groth16::r1cs_to_qap::{evaluate_constraint, LibsnarkReduction, R1CStoQAP};
+use ark_groth16::r1cs_to_qap::{evaluate_constraint, LibsnarkReduction, R1CSToQAP};
 use ark_poly::EvaluationDomain;
 use ark_relations::r1cs::{ConstraintMatrices, ConstraintSystemRef, SynthesisError};
 use ark_std::{cfg_into_iter, cfg_iter, cfg_iter_mut, vec};
@@ -11,7 +11,7 @@ use ark_std::{cfg_into_iter, cfg_iter, cfg_iter_mut, vec};
 /// in that domain. This serves as HZ when computing the C proof element.
 pub struct CircomReduction;
 
-impl R1CStoQAP for CircomReduction {
+impl R1CSToQAP for CircomReduction {
     #[allow(clippy::type_complexity)]
     fn instance_map_with_evaluation<F: PrimeField, D: EvaluationDomain<F>>(
         cs: ConstraintSystemRef<F>,

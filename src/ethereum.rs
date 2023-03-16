@@ -1,10 +1,11 @@
 //! Helpers for converting Arkworks types to U256-tuples as expected by the
 //! Solidity Groth16 Verifier smart contracts
-use ark_ff::{BigInteger, FromBytes, PrimeField};
+use ark_ff::{BigInteger, PrimeField};
 use ethers_core::types::U256;
 use num_traits::Zero;
 
 use ark_bn254::{Bn254, Fq, Fq2, Fr, G1Affine, G2Affine};
+use ark_serialize::CanonicalDeserialize;
 
 pub struct Inputs(pub Vec<U256>);
 
@@ -26,8 +27,11 @@ impl From<G1> for G1Affine {
     fn from(src: G1) -> G1Affine {
         let x: Fq = u256_to_point(src.x);
         let y: Fq = u256_to_point(src.y);
-        let inf = x.is_zero() && y.is_zero();
-        G1Affine::new(x, y, inf)
+        if x.is_zero() && y.is_zero() {
+            G1Affine::identity()
+        } else {
+            G1Affine::new(x, y)
+        }
     }
 }
 
@@ -64,8 +68,11 @@ impl From<G2> for G2Affine {
         let c1 = u256_to_point(src.y[1]);
         let y = Fq2::new(c0, c1);
 
-        let inf = x.is_zero() && y.is_zero();
-        G2Affine::new(x, y, inf)
+        if x.is_zero() && y.is_zero() {
+            G2Affine::identity()
+        } else {
+            G2Affine::new(x, y)
+        }
     }
 }
 
@@ -169,14 +176,14 @@ impl From<VerifyingKey> for ark_groth16::VerifyingKey<Bn254> {
 fn u256_to_point<F: PrimeField>(point: U256) -> F {
     let mut buf = [0; 32];
     point.to_little_endian(&mut buf);
-    let bigint = F::BigInt::read(&buf[..]).expect("always works");
-    F::from_repr(bigint).expect("alwasy works")
+    let bigint = F::BigInt::deserialize_uncompressed(&buf[..]).expect("always works");
+    F::from_bigint(bigint).expect("always works")
 }
 
 // Helper for converting a PrimeField to its U256 representation for Ethereum compatibility
 // (U256 reads data as big endian)
 fn point_to_u256<F: PrimeField>(point: F) -> U256 {
-    let point = point.into_repr();
+    let point = point.into_bigint();
     let point_bytes = point.to_bytes_be();
     U256::from(&point_bytes[..])
 }
@@ -185,13 +192,10 @@ fn point_to_u256<F: PrimeField>(point: F) -> U256 {
 mod tests {
     use super::*;
     use ark_bn254::Fq;
+    use ark_std::UniformRand;
 
     fn fq() -> Fq {
         Fq::from(2)
-    }
-
-    fn fq2() -> Fq2 {
-        Fq2::from(2)
     }
 
     fn fr() -> Fr {
@@ -199,11 +203,13 @@ mod tests {
     }
 
     fn g1() -> G1Affine {
-        G1Affine::new(fq(), fq(), false)
+        let rng = &mut ark_std::test_rng();
+        G1Affine::rand(rng)
     }
 
     fn g2() -> G2Affine {
-        G2Affine::new(fq2(), fq2(), false)
+        let rng = &mut ark_std::test_rng();
+        G2Affine::rand(rng)
     }
 
     #[test]
