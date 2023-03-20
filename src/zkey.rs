@@ -482,7 +482,8 @@ mod tests {
         let n_vars = 10;
         let buf = vec![g1_buf(); n_vars]
             .iter()
-            .flatten().cloned()
+            .flatten()
+            .cloned()
             .collect::<Vec<_>>();
         let expected = vec![g1_one(); n_vars];
 
@@ -505,7 +506,8 @@ mod tests {
         let n_vars = 10;
         let buf = vec![g2_buf(); n_vars]
             .iter()
-            .flatten().cloned()
+            .flatten()
+            .cloned()
             .collect::<Vec<_>>();
         let expected = vec![g2_one(); n_vars];
 

@@ -3,9 +3,12 @@ name = "ark-circom"
 version = "0.1.0"
 edition = "2018"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 # WASM operations
-wasmer = { version = "2.0" }
+wasmer = { version = "2.0", default-features = false }
 fnv = { version = "1.0.3", default-features = false }
 num = { version = "0.4.0" }
 num-traits = { version = "0.2.0", default-features = false }
@@ -17,7 +20,7 @@ ark-ec = { version = "0.4.1", default-features = false, features = ["parallel"] 
 ark-ff = { version = "0.4.1", default-features = false, features = ["parallel", "asm"] }
 ark-std = { version = "0.4.0", default-features = false, features = ["parallel"] }
 ark-bn254 = { version = "0.4.0" }
-ark-groth16 = { version = "0.4.0", features = ["parallel"] }
+ark-groth16 = { version = "0.4.0", default-features = false, features = ["parallel"] }
 ark-poly = { version = "0.4.1", default-features = false, features = ["parallel"] }
 ark-relations = { version = "0.4.0", default-features = false }
 ark-serialize = { version = "0.4.1", default-features = false }
@@ -47,7 +50,8 @@ name = "groth16"
 harness = false
 
 [features]
+default = ["wasmer/default", "circom-2", "ethereum"]
+wasm = ["wasmer/js-default"]
 bench-complex-all = []
 circom-2 = []
 ethereum = ["ethers-core"]
-default = ["circom-2", "ethereum"]
