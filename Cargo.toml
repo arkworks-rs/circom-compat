@@ -16,12 +16,12 @@ num-bigint = { version = "0.4", default-features = false, features = ["rand"] }
 
 # ZKP Generation
 ark-crypto-primitives = { version = "0.4.0" }
-ark-ec = { version = "0.4.1", default-features = false }
-ark-ff = { version = "0.4.1", default-features = false, features = ["asm"] }
-ark-std = { version = "0.4.0", default-features = false }
+ark-ec = { version = "0.4.1", default-features = false, features = ["parallel"] }
+ark-ff = { version = "0.4.1", default-features = false, features = ["parallel", "asm"] }
+ark-std = { version = "0.4.0", default-features = false, features = ["parallel"] }
 ark-bn254 = { version = "0.4.0" }
-ark-groth16 = { version = "0.4.0", default-features = false }
-ark-poly = { version = "0.4.1", default-features = false }
+ark-groth16 = { version = "0.4.0", default-features = false, features = ["parallel"] }
+ark-poly = { version = "0.4.1", default-features = false, features = ["parallel"] }
 ark-relations = { version = "0.4.0", default-features = false }
 ark-serialize = { version = "0.4.1", default-features = false }
 
@@ -50,9 +50,8 @@ name = "groth16"
 harness = false
 
 [features]
-default = ["circom-2", "ethereum", "parallel", "wasmer/default"]
-parallel = ["ark-ec/parallel", "ark-ff/parallel", "ark-std/parallel", "ark-groth16/parallel", "ark-poly/parallel"]
+default = ["wasmer/default", "circom-2", "ethereum"]
 wasm = ["wasmer/js-default"]
-bench-complex-all = []
-circom-2 = []
+bench-complex-all = ["wasmer/default"]
+circom-2 = ["wasmer/default"]
 ethereum = ["ethers-core"]
