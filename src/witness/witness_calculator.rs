@@ -495,6 +495,5 @@ mod tests {
         for (r, w) in res.iter().zip(case.witness) {
             assert_eq!(r, &BigInt::from_str(w).unwrap());
         }
-        
     }
 }
