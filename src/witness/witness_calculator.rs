@@ -440,6 +440,8 @@ mod tests {
         let witness: Vec<String> = serde_json::from_str(&witness).unwrap();
         let witness: &[&str] = &witness.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
 
+        let circuit_path = root_path("test-vectors/smtverifier10.wasm").as_str();
+
         // run_test(TestCase {
         //     circuit_path: root_path("test-vectors/smtverifier10.wasm").as_str(),
         //     inputs_path: root_path("test-vectors/smtverifier10-input.json").as_str(),
