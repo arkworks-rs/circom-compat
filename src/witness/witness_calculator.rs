@@ -440,20 +440,13 @@ mod tests {
         let witness: Vec<String> = serde_json::from_str(&witness).unwrap();
         let witness: &[&str] = &witness.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
 
-        let binding = root_path("test-vectors/smtverifier10.wasm");
-        let circuit_path = binding.as_str();
-        let binding2 = root_path("test-vectors/smtverifier10-input.json");
-        let inputs_path = binding2.as_str();
-
-        let test_case = TestCase {
-            circuit_path,
-            inputs_path,
+        run_test(TestCase {
+            circuit_path: root_path("test-vectors/smtverifier10.wasm").as_str(),
+            inputs_path: root_path("test-vectors/smtverifier10-input.json").as_str(),
             n_vars: 4794,
             n64: 4,
             witness,
-        };
-
-        run_test(test_case);
+        });
     }
 
     use serde_json::Value;
