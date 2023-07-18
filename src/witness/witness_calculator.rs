@@ -453,7 +453,7 @@ mod tests {
             witness,
         };
 
-        // run_test(test_case);
+        run_test(test_case);
     }
 
     use serde_json::Value;
