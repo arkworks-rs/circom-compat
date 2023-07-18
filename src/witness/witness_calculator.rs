@@ -469,38 +469,38 @@ mod tests {
 
     fn run_test(case: TestCase) {
         let mut wtns = WitnessCalculator::new(case.circuit_path).unwrap();
-        // assert_eq!(
-        //     wtns.memory.prime.to_str_radix(16),
-        //     "30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001".to_lowercase()
-        // );
-        // assert_eq!({ wtns.instance.get_n_vars().unwrap() }, case.n_vars);
-        // assert_eq!({ wtns.n64 }, case.n64);
+        assert_eq!(
+            wtns.memory.prime.to_str_radix(16),
+            "30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001".to_lowercase()
+        );
+        assert_eq!({ wtns.instance.get_n_vars().unwrap() }, case.n_vars);
+        assert_eq!({ wtns.n64 }, case.n64);
 
-        // let inputs_str = std::fs::read_to_string(case.inputs_path).unwrap();
-        // let inputs: std::collections::HashMap<String, serde_json::Value> =
-        //     serde_json::from_str(&inputs_str).unwrap();
+        let inputs_str = std::fs::read_to_string(case.inputs_path).unwrap();
+        let inputs: std::collections::HashMap<String, serde_json::Value> =
+            serde_json::from_str(&inputs_str).unwrap();
 
-        // let inputs = inputs
-        //     .iter()
-        //     .map(|(key, value)| {
-        //         let res = match value {
-        //             Value::String(inner) => {
-        //                 vec![BigInt::from_str(inner).unwrap()]
-        //             }
-        //             Value::Number(inner) => {
-        //                 vec![BigInt::from(inner.as_u64().expect("not a u32"))]
-        //             }
-        //             Value::Array(inner) => inner.iter().cloned().map(value_to_bigint).collect(),
-        //             _ => panic!(),
-        //         };
+        let inputs = inputs
+            .iter()
+            .map(|(key, value)| {
+                let res = match value {
+                    Value::String(inner) => {
+                        vec![BigInt::from_str(inner).unwrap()]
+                    }
+                    Value::Number(inner) => {
+                        vec![BigInt::from(inner.as_u64().expect("not a u32"))]
+                    }
+                    Value::Array(inner) => inner.iter().cloned().map(value_to_bigint).collect(),
+                    _ => panic!(),
+                };
 
-        //         (key.clone(), res)
-        //     })
-        //     .collect::<HashMap<_, _>>();
+                (key.clone(), res)
+            })
+            .collect::<HashMap<_, _>>();
 
-        // let res = wtns.calculate_witness(inputs, false).unwrap();
-        // for (r, w) in res.iter().zip(case.witness) {
-        //     assert_eq!(r, &BigInt::from_str(w).unwrap());
-        // }
+        let res = wtns.calculate_witness(inputs, false).unwrap();
+        for (r, w) in res.iter().zip(case.witness) {
+            assert_eq!(r, &BigInt::from_str(w).unwrap());
+        }
     }
 }
