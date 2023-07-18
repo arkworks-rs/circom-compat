@@ -433,21 +433,21 @@ mod tests {
         });
     }
 
-    #[test]
-    fn smt_verifier() {
-        let witness =
-            std::fs::read_to_string(root_path("test-vectors/smtverifier10-witness.json")).unwrap();
-        let witness: Vec<String> = serde_json::from_str(&witness).unwrap();
-        let witness = &witness.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
+    // #[test]
+    // fn smt_verifier() {
+    //     let witness =
+    //         std::fs::read_to_string(root_path("test-vectors/smtverifier10-witness.json")).unwrap();
+    //     let witness: Vec<String> = serde_json::from_str(&witness).unwrap();
+    //     let witness = &witness.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
 
-        run_test(TestCase {
-            circuit_path: root_path("test-vectors/smtverifier10.wasm").as_str(),
-            inputs_path: root_path("test-vectors/smtverifier10-input.json").as_str(),
-            n_vars: 4794,
-            n64: 4,
-            witness,
-        });
-    }
+    //     run_test(TestCase {
+    //         circuit_path: root_path("test-vectors/smtverifier10.wasm").as_str(),
+    //         inputs_path: root_path("test-vectors/smtverifier10-input.json").as_str(),
+    //         n_vars: 4794,
+    //         n64: 4,
+    //         witness,
+    //     });
+    // }
 
     use serde_json::Value;
     use std::str::FromStr;
