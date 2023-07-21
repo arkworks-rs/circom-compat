@@ -39,6 +39,38 @@ jobs:
             export PATH=$HOME/bin:$PATH
             cargo test --frozen --features circom-2
 
+  tests_macos:
+    runs-on: macos-12
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      # Install for Anvil
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - uses: Swatinem/rust-cache@v1
+        with:
+          cache-on-failure: true
+
+      - name: cargo test
+        run: |
+            export PATH=$HOME/bin:$PATH
+            cargo test --frozen
+
+      - name: cargo test circom 2 feature flag
+        run: |
+            export PATH=$HOME/bin:$PATH
+            cargo test --frozen --features circom-2
+
   # lint:
   #   runs-on: ubuntu-latest
   #   steps:
