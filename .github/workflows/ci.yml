@@ -34,6 +34,7 @@ jobs:
             export PATH=$HOME/bin:$PATH
             cargo test
 
+
       - name: cargo test smt_verifier
         run: |
             export PATH=$HOME/bin:$PATH
