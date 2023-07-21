@@ -32,12 +32,12 @@ jobs:
       - name: cargo test
         run: |
             export PATH=$HOME/bin:$PATH
-            cargo test --workspace --exclude witness::witness_calculator::tests::smt_verifier
+            cargo test
 
       - name: cargo test smt_verifier
         run: |
             export PATH=$HOME/bin:$PATH
-            cargo test --tests witness::witness_calculator::tests::smt_verifier
+            cargo test --features smt_verifier
 
       - name: cargo test circom 2 feature flag
         run: |
@@ -69,12 +69,12 @@ jobs:
       - name: cargo test
         run: |
             export PATH=$HOME/bin:$PATH
-            cargo test --workspace --exclude witness::witness_calculator::tests::smt_verifier
+            cargo test
 
       - name: cargo test smt_verifier
         run: |
             export PATH=$HOME/bin:$PATH
-            cargo test --tests witness::witness_calculator::tests::smt_verifier
+            cargo test --features smt_verifier
 
       - name: cargo test circom 2 feature flag
         run: |

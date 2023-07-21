@@ -433,6 +433,7 @@ mod tests {
         });
     }
 
+    #[cfg(feature = "smt_verifier")]
     #[test]
     fn smt_verifier() {
         let witness =
