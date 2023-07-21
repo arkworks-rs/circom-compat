@@ -40,7 +40,7 @@ jobs:
             cargo test --frozen --features circom-2
 
   tests_macos:
-    runs-on: macos-12
+    runs-on: macos-latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -64,12 +64,12 @@ jobs:
       - name: cargo test
         run: |
             export PATH=$HOME/bin:$PATH
-            cargo test --frozen
+            cargo test
 
       - name: cargo test circom 2 feature flag
         run: |
             export PATH=$HOME/bin:$PATH
-            cargo test --frozen --features circom-2
+            cargo test --features circom-2
 
   # lint:
   #   runs-on: ubuntu-latest
