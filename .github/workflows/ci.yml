@@ -16,7 +16,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.67.0
           override: true
 
       # Install for Anvil
@@ -34,43 +34,6 @@ jobs:
             export PATH=$HOME/bin:$PATH
             cargo test
 
-
-      - name: cargo test smt_verifier
-        run: |
-            export PATH=$HOME/bin:$PATH
-            cargo test --features smt_verifier
-
-      - name: cargo test circom 2 feature flag
-        run: |
-            export PATH=$HOME/bin:$PATH
-            cargo test --features circom-2
-
-  tests_macos:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
-      # Install for Anvil
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
-
-      - uses: Swatinem/rust-cache@v1
-        with:
-          cache-on-failure: true
-
-      - name: cargo test
-        run: |
-            export PATH=$HOME/bin:$PATH
-            cargo test
 
       - name: cargo test smt_verifier
         run: |
