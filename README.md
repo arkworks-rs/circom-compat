@@ -67,7 +67,7 @@ Tests require the following installed:
 
 ## Known limitations
 
-Cuurently, due to [`wasmer` issue](https://github.com/wasmerio/wasmer/issues/4072) crate works as expected up to Rust version `1.67.0`.
+Cuurently, due to an issue in our upstream (https://github.com/wasmerio/wasmer/issues/4072), this crate works as expected only up to Rust version `1.67.0`; in newer Rust versions, `wasmer` is currently unsound.
 
 ## Acknowledgements
 
