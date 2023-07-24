@@ -65,6 +65,10 @@ Tests require the following installed:
 - [x] Proof generations and verification using Arkworks
 - [ ] CLI for common operations
 
+## Known limitations
+
+Cuurently, due to [`wasmer` issue](https://github.com/wasmerio/wasmer/issues/4072) crate works as expected up to Rust version `1.67.0`.
+
 ## Acknowledgements
 
 This library would not have been possibly without the great work done in:
