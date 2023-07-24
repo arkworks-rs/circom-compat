@@ -65,6 +65,10 @@ Tests require the following installed:
 - [x] Proof generations and verification using Arkworks
 - [ ] CLI for common operations
 
+## Known limitations
+
+Currently, due to an issue in our upstream (https://github.com/wasmerio/wasmer/issues/4072), this crate works as expected only up to Rust version `1.67.0`; in newer Rust versions, `wasmer` is currently unsound.
+
 ## Acknowledgements
 
 This library would not have been possibly without the great work done in:
