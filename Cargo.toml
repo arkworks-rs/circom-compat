@@ -35,7 +35,7 @@ byteorder = "=1.4.3"
 ethers-core = { version = "=2.0.7", default-features = false, optional = true }
 
 # error handling
-thiserror = "=1.0.39"
+thiserror = "=1.0.44"
 color-eyre = "=0.6.2"
 criterion = "=0.3.6"
 
