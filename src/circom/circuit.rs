@@ -92,6 +92,7 @@ mod tests {
     use crate::{CircomBuilder, CircomConfig};
     use ark_bn254::{Bn254, Fr};
     use ark_relations::r1cs::ConstraintSystem;
+    use num_bigint::BigInt;
 
     #[test]
     fn satisfied() {
@@ -101,8 +102,8 @@ mod tests {
         )
         .unwrap();
         let mut builder = CircomBuilder::new(cfg);
-        builder.push_input("a", 3);
-        builder.push_input("b", 11);
+        builder.push_input("a", crate::circom::Inputs::BigInt(BigInt::from(3)));
+        builder.push_input("b", crate::circom::Inputs::BigInt(BigInt::from(11)));
 
         let circom = builder.build().unwrap();
         let cs = ConstraintSystem::<Fr>::new_ref();

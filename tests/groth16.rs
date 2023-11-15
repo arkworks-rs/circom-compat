@@ -1,10 +1,9 @@
-use ark_circom::{CircomBuilder, CircomConfig};
-use ark_std::rand::thread_rng;
-use color_eyre::Result;
-
 use ark_bn254::Bn254;
+use ark_circom::{CircomBuilder, CircomConfig};
 use ark_crypto_primitives::snark::SNARK;
 use ark_groth16::Groth16;
+use ark_std::rand::thread_rng;
+use color_eyre::Result;
 
 type GrothBn = Groth16<Bn254>;
 
@@ -15,8 +14,8 @@ fn groth16_proof() -> Result<()> {
         "./test-vectors/mycircuit.r1cs",
     )?;
     let mut builder = CircomBuilder::new(cfg);
-    builder.push_input("a", 3);
-    builder.push_input("b", 11);
+    builder.push_input("a", ark_circom::circom::Inputs::BigInt(3.into()));
+    builder.push_input("b", ark_circom::circom::Inputs::BigInt(11.into()));
 
     // create an empty instance for setting it up
     let circom = builder.setup();
@@ -47,9 +46,9 @@ fn groth16_proof_wrong_input() {
     )
     .unwrap();
     let mut builder = CircomBuilder::new(cfg);
-    builder.push_input("a", 3);
+    builder.push_input("a", ark_circom::circom::Inputs::BigInt(3.into()));
     // This isn't a public input to the circuit, should fail
-    builder.push_input("foo", 11);
+    builder.push_input("foo", ark_circom::circom::Inputs::BigInt(11.into()));
 
     // create an empty instance for setting it up
     let circom = builder.setup();
@@ -68,8 +67,8 @@ fn groth16_proof_circom2() -> Result<()> {
         "./test-vectors/circom2_multiplier2.r1cs",
     )?;
     let mut builder = CircomBuilder::new(cfg);
-    builder.push_input("a", 3);
-    builder.push_input("b", 11);
+    builder.push_input("a", ark_circom::circom::Inputs::BigInt(3.into()));
+    builder.push_input("b", ark_circom::circom::Inputs::BigInt(11.into()));
 
     // create an empty instance for setting it up
     let circom = builder.setup();
@@ -100,8 +99,11 @@ fn witness_generation_circom2() -> Result<()> {
         "./test-vectors/circom2_multiplier2.r1cs",
     )?;
     let mut builder = CircomBuilder::new(cfg);
-    builder.push_input("a", 3);
-    builder.push_input("b", 0x100000000u64 - 1);
+    builder.push_input("a", ark_circom::circom::Inputs::BigInt(3.into()));
+    builder.push_input(
+        "b",
+        ark_circom::circom::Inputs::BigInt((0x100000000u64 - 1).into()),
+    );
 
     assert!(builder.build().is_ok());
 

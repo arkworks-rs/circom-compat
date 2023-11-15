@@ -10,9 +10,39 @@ use crate::{circom::R1CSFile, witness::WitnessCalculator};
 use color_eyre::Result;
 
 #[derive(Clone, Debug)]
+pub enum Inputs {
+    BigInt(BigInt),
+    BigIntVec(Vec<BigInt>),
+    BigIntVecVec(Vec<Vec<BigInt>>),
+}
+
+impl Inputs {
+    pub fn flatten(&self) -> Vec<BigInt> {
+        match self {
+            Inputs::BigInt(n) => vec![n.clone()],
+            Inputs::BigIntVec(n) => n.clone(),
+            Inputs::BigIntVecVec(n) => n.clone().into_iter().flatten().collect(),
+        }
+    }
+}
+
+impl std::iter::FromIterator<BigInt> for Inputs {
+    fn from_iter<I: IntoIterator<Item = BigInt>>(iter: I) -> Self {
+        let items: Vec<BigInt> = iter.into_iter().collect();
+
+        match items.len() {
+            0 => panic!("Cannot create Value from an empty iterator"),
+            1 => Inputs::BigInt(items[0].clone()),
+            2 => Inputs::BigIntVec(items),
+            _ => panic!("Cannot create Value from an iterator with more than 3 elements"),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct CircomBuilder<E: Pairing> {
     pub cfg: CircomConfig<E>,
-    pub inputs: HashMap<String, Vec<BigInt>>,
+    pub inputs: HashMap<String, Inputs>,
 }
 
 // Add utils for creating this from files / directly from bytes
@@ -47,9 +77,8 @@ impl<E: Pairing> CircomBuilder<E> {
     }
 
     /// Pushes a Circom input at the specified name.
-    pub fn push_input<T: Into<BigInt>>(&mut self, name: impl ToString, val: T) {
-        let values = self.inputs.entry(name.to_string()).or_insert_with(Vec::new);
-        values.push(val.into());
+    pub fn push_input(&mut self, name: impl ToString, val: Inputs) {
+        self.inputs.entry(name.to_string()).or_insert(val);
     }
 
     /// Generates an empty circom circuit with no witness set, to be used for

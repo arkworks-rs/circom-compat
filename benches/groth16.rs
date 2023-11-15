@@ -1,7 +1,7 @@
 use ark_crypto_primitives::snark::SNARK;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use ark_circom::{read_zkey, CircomReduction, WitnessCalculator};
+use ark_circom::{circom::Inputs, read_zkey, CircomReduction, WitnessCalculator};
 use ark_std::rand::thread_rng;
 
 use ark_bn254::Bn254;
@@ -22,9 +22,10 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
     let num_constraints = matrices.num_constraints;
 
     let inputs = {
-        let mut inputs: HashMap<String, Vec<num_bigint::BigInt>> = HashMap::new();
-        let values = inputs.entry("a".to_string()).or_insert_with(Vec::new);
-        values.push(3.into());
+        let mut inputs: HashMap<String, Inputs> = HashMap::new();
+        let values = inputs
+            .entry("a".to_string())
+            .or_insert(Inputs::BigInt(3.into()));
 
         inputs
     };

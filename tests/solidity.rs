@@ -21,8 +21,8 @@ async fn solidity_verifier() -> Result<()> {
         "./test-vectors/mycircuit.r1cs",
     )?;
     let mut builder = CircomBuilder::new(cfg);
-    builder.push_input("a", 3);
-    builder.push_input("b", 11);
+    builder.push_input("a", ark_circom::circom::Inputs::BigInt(3.into()));
+    builder.push_input("b", ark_circom::circom::Inputs::BigInt(11.into()));
 
     // create an empty instance for setting it up
     let circom = builder.setup();

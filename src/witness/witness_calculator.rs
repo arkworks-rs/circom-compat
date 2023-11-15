@@ -1,4 +1,5 @@
 use super::{fnv, CircomBase, SafeMemory, Wasm};
+use crate::circom::Inputs;
 use color_eyre::Result;
 use num_bigint::BigInt;
 use num_traits::Zero;
@@ -152,7 +153,7 @@ impl WitnessCalculator {
         }
     }
 
-    pub fn calculate_witness<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
+    pub fn calculate_witness<I: IntoIterator<Item = (String, Inputs)>>(
         &mut self,
         inputs: I,
         sanity_check: bool,
@@ -173,7 +174,7 @@ impl WitnessCalculator {
     }
 
     // Circom 1 default behavior
-    fn calculate_witness_circom1<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
+    fn calculate_witness_circom1<I: IntoIterator<Item = (String, Inputs)>>(
         &mut self,
         inputs: I,
         sanity_check: bool,
@@ -187,13 +188,13 @@ impl WitnessCalculator {
         // allocate the inputs
         for (name, values) in inputs.into_iter() {
             let (msb, lsb) = fnv(&name);
-
+            let flatten = values.flatten();
             self.instance
                 .get_signal_offset32(p_sig_offset, 0, msb, lsb)?;
 
             let sig_offset = self.memory.read_u32(p_sig_offset as usize) as usize;
 
-            for (i, value) in values.into_iter().enumerate() {
+            for (i, value) in flatten.into_iter().enumerate() {
                 self.memory.write_fr(p_fr as usize, &value)?;
                 self.instance
                     .set_signal(0, 0, (sig_offset + i) as u32, p_fr)?;
@@ -216,7 +217,7 @@ impl WitnessCalculator {
 
     // Circom 2 feature flag with version 2
     #[cfg(feature = "circom-2")]
-    fn calculate_witness_circom2<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
+    fn calculate_witness_circom2<I: IntoIterator<Item = (String, Inputs)>>(
         &mut self,
         inputs: I,
         sanity_check: bool,
@@ -229,7 +230,8 @@ impl WitnessCalculator {
         for (name, values) in inputs.into_iter() {
             let (msb, lsb) = fnv(&name);
 
-            for (i, value) in values.into_iter().enumerate() {
+            let flatten = values.flatten();
+            for (i, value) in flatten.into_iter().enumerate() {
                 let f_arr = to_array32(&value, n32 as usize);
                 for j in 0..n32 {
                     self.instance
@@ -256,7 +258,7 @@ impl WitnessCalculator {
 
     pub fn calculate_witness_element<
         E: ark_ec::pairing::Pairing,
-        I: IntoIterator<Item = (String, Vec<BigInt>)>,
+        I: IntoIterator<Item = (String, Inputs)>,
     >(
         &mut self,
         inputs: I,
@@ -473,23 +475,25 @@ mod tests {
         let inputs: std::collections::HashMap<String, serde_json::Value> =
             serde_json::from_str(&inputs_str).unwrap();
 
-        let inputs = inputs
+        let inputs: HashMap<String, Inputs> = inputs
             .iter()
             .map(|(key, value)| {
                 let res = match value {
-                    Value::String(inner) => {
-                        vec![BigInt::from_str(inner).unwrap()]
-                    }
+                    Value::String(inner) => Inputs::BigInt(BigInt::from_str(inner).unwrap()),
                     Value::Number(inner) => {
-                        vec![BigInt::from(inner.as_u64().expect("not a u32"))]
+                        Inputs::BigInt(BigInt::from(inner.as_u64().expect("not a u32")))
                     }
-                    Value::Array(inner) => inner.iter().cloned().map(value_to_bigint).collect(),
+                    Value::Array(inner) => {
+                        let k = inner.iter().cloned().map(value_to_bigint).collect();
+                        k
+                    }
                     _ => panic!(),
                 };
 
                 (key.clone(), res)
             })
             .collect::<HashMap<_, _>>();
+        println!("496, {:?}", inputs);
 
         let res = wtns.calculate_witness(inputs, false).unwrap();
         for (r, w) in res.iter().zip(case.witness) {
