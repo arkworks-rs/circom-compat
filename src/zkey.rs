@@ -372,11 +372,12 @@ mod tests {
     use super::*;
     use ark_bn254::{G1Projective, G2Projective};
     use ark_crypto_primitives::snark::SNARK;
+    use num_bigint::BigInt;
     use num_bigint::BigUint;
     use serde_json::Value;
     use std::fs::File;
 
-    use crate::circom::CircomReduction;
+    use crate::circom::{CircomReduction, Inputs};
     use crate::witness::WitnessCalculator;
     use crate::{CircomBuilder, CircomConfig};
     use ark_groth16::Groth16;
@@ -854,8 +855,8 @@ mod tests {
         )
         .unwrap();
         let mut builder = CircomBuilder::new(cfg);
-        builder.push_input("a", 3);
-        builder.push_input("b", 11);
+        builder.push_input("a", Inputs::BigInt(BigInt::from(3)));
+        builder.push_input("b", Inputs::BigInt(BigInt::from(11)));
 
         let circom = builder.build().unwrap();
 
@@ -878,12 +879,14 @@ mod tests {
         let (params, matrices) = read_zkey(&mut file).unwrap();
 
         let mut wtns = WitnessCalculator::new("./test-vectors/mycircuit.wasm").unwrap();
-        let mut inputs: HashMap<String, Vec<num_bigint::BigInt>> = HashMap::new();
-        let values = inputs.entry("a".to_string()).or_insert_with(Vec::new);
-        values.push(3.into());
+        let mut inputs: HashMap<String, Inputs> = HashMap::new();
+        inputs
+            .entry("a".to_string())
+            .or_insert(Inputs::BigInt(BigInt::from(3)));
 
-        let values = inputs.entry("b".to_string()).or_insert_with(Vec::new);
-        values.push(11.into());
+        inputs
+            .entry("b".to_string())
+            .or_insert(Inputs::BigInt(BigInt::from(11)));
 
         let mut rng = thread_rng();
         use ark_std::UniformRand;

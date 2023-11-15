@@ -27,8 +27,22 @@ let cfg = CircomConfig::<Bn254>::new(
 
 // Insert our public inputs as key value pairs
 let mut builder = CircomBuilder::new(cfg);
-builder.push_input("a", 3);
-builder.push_input("b", 11);
+builder.push_input("a", ark_circom::circom::Inputs::BigInt(3.into()));
+builder.push_input("b", ark_circom::circom::Inputs::BigInt(11.into()));
+// for 2d array, use
+// builder.push_input("a", ark_circom::circom::Inputs::BigIntVec(vec[3.into()]));
+// for 3d array, use
+// builder.push_input(
+//     "a",
+//     ark_circom::circom::InputValue::BigIntVecVec(vec![
+//         vec![
+//             3.into(),
+//         ],
+//         vec![
+//             11.into(),
+//         ],
+//     ]),
+// );
 
 // Create an empty instance for setting it up
 let circom = builder.setup();

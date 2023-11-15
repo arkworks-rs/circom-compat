@@ -7,7 +7,7 @@ mod circuit;
 pub use circuit::CircomCircuit;
 
 mod builder;
-pub use builder::{CircomBuilder, CircomConfig};
+pub use builder::{CircomBuilder, CircomConfig, Inputs};
 
 mod qap;
 pub use qap::CircomReduction;
