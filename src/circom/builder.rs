@@ -52,6 +52,16 @@ impl<F: PrimeField> CircomConfig<F> {
             sanity_check: false,
         })
     }
+
+    pub fn new_from_bytes(wtns: &[u8], r1cs: &[u8]) -> Result<Self> {
+        let wtns = WitnessCalculator::from_bytes(wtns).unwrap();
+        let r1cs = R1CSFile::new(Cursor::new(r1cs))?.into();
+        Ok(Self {
+            wtns,
+            r1cs,
+            sanity_check: false,
+        })
+    }
 }
 
 impl<F: PrimeField> CircomBuilder<F> {
