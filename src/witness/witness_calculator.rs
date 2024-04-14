@@ -8,7 +8,7 @@ use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeErr
 #[cfg(feature = "circom-2")]
 use num::ToPrimitive;
 
-// use super::Circom;
+use super::Circom;
 #[cfg(feature = "circom-2")]
 use super::Circom2;
 
@@ -113,23 +113,23 @@ impl WitnessCalculator {
             })
         }
 
-        //fn new_circom1(instance: Wasm, memory: Memory, version: u32) -> Result<WitnessCalculator> {
-        //    // Fallback to Circom 1 behavior
-        //    let n32 = (instance.get_fr_len()? >> 2) - 2;
-        //    let mut safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
-        //    let ptr = instance.get_ptr_raw_prime()?;
-        //    let prime = safe_memory.read_big(ptr as usize, n32 as usize)?;
+        fn new_circom1(instance: Wasm, memory: Memory, version: u32) -> Result<WitnessCalculator> {
+            // Fallback to Circom 1 behavior
+            let n32 = (instance.get_fr_len()? >> 2) - 2;
+            let mut safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
+            let ptr = instance.get_ptr_raw_prime()?;
+            let prime = safe_memory.read_big(ptr as usize, n32 as usize)?;
 
-        //    let n64 = ((prime.bits() - 1) / 64 + 1) as u32;
-        //    safe_memory.prime = prime;
+            let n64 = ((prime.bits() - 1) / 64 + 1) as u32;
+            safe_memory.prime = prime;
 
-        //    Ok(WitnessCalculator {
-        //        instance,
-        //        memory: safe_memory,
-        //        n64,
-        //        circom_version: version,
-        //    })
-        //}
+            Ok(WitnessCalculator {
+                instance,
+                memory: safe_memory,
+                n64,
+                circom_version: version,
+            })
+        }
 
         // Three possibilities:
         // a) Circom 2 feature flag enabled, WASM runtime version 2
@@ -142,12 +142,12 @@ impl WitnessCalculator {
             if #[cfg(feature = "circom-2")] {
                 match version {
                     2 => new_circom2(instance, memory, version),
-                    //1 => new_circom1(instance, memory, version),
+                    1 => new_circom1(instance, memory, version),
 
                     _ => panic!("Unknown Circom version")
                 }
             } else {
-                //new_circom1(instance, memory, version)
+                new_circom1(instance, memory, version)
                 _ => panic!("Unknown Circom version")
             }
         }
@@ -164,57 +164,56 @@ impl WitnessCalculator {
             if #[cfg(feature = "circom-2")] {
                 match self.circom_version {
                     2 => self.calculate_witness_circom2(inputs, sanity_check),
-                    //1 => self.calculate_witness_circom1(inputs, sanity_check),
+                    1 => self.calculate_witness_circom1(inputs, sanity_check),
                     _ => panic!("Unknown Circom version")
                 }
             } else {
-                //self.calculate_witness_circom1(inputs, sanity_check)
-                _ => panic!("Unknown Circom version")
+                self.calculate_witness_circom1(inputs, sanity_check)
             }
         }
     }
 
     // Circom 1 default behavior
-    //fn calculate_witness_circom1<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
-    //    &mut self,
-    //    inputs: I,
-    //    sanity_check: bool,
-    //) -> Result<Vec<BigInt>> {
-    //    self.instance.init(sanity_check)?;
+    fn calculate_witness_circom1<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
+        &mut self,
+        inputs: I,
+        sanity_check: bool,
+    ) -> Result<Vec<BigInt>> {
+        self.instance.init(sanity_check)?;
 
-    //    let old_mem_free_pos = self.memory.free_pos();
-    //    let p_sig_offset = self.memory.alloc_u32();
-    //    let p_fr = self.memory.alloc_fr();
+        let old_mem_free_pos = self.memory.free_pos();
+        let p_sig_offset = self.memory.alloc_u32();
+        let p_fr = self.memory.alloc_fr();
 
-    //    // allocate the inputs
-    //    for (name, values) in inputs.into_iter() {
-    //        let (msb, lsb) = fnv(&name);
+        // allocate the inputs
+        for (name, values) in inputs.into_iter() {
+            let (msb, lsb) = fnv(&name);
 
-    //        self.instance
-    //            .get_signal_offset32(p_sig_offset, 0, msb, lsb)?;
+            self.instance
+                .get_signal_offset32(p_sig_offset, 0, msb, lsb)?;
 
-    //        let sig_offset = self.memory.read_u32(p_sig_offset as usize) as usize;
+            let sig_offset = self.memory.read_u32(p_sig_offset as usize) as usize;
 
-    //        for (i, value) in values.into_iter().enumerate() {
-    //            self.memory.write_fr(p_fr as usize, &value)?;
-    //            self.instance
-    //                .set_signal(0, 0, (sig_offset + i) as u32, p_fr)?;
-    //        }
-    //    }
+            for (i, value) in values.into_iter().enumerate() {
+                self.memory.write_fr(p_fr as usize, &value)?;
+                self.instance
+                    .set_signal(0, 0, (sig_offset + i) as u32, p_fr)?;
+            }
+        }
 
-    //    let mut w = Vec::new();
+        let mut w = Vec::new();
 
-    //    let n_vars = self.instance.get_n_vars()?;
-    //    for i in 0..n_vars {
-    //        let ptr = self.instance.get_ptr_witness(i)? as usize;
-    //        let el = self.memory.read_fr(ptr)?;
-    //        w.push(el);
-    //    }
+        let n_vars = self.instance.get_n_vars()?;
+        for i in 0..n_vars {
+            let ptr = self.instance.get_ptr_witness(i)? as usize;
+            let el = self.memory.read_fr(ptr)?;
+            w.push(el);
+        }
 
-    //    self.memory.set_free_pos(old_mem_free_pos);
+        self.memory.set_free_pos(old_mem_free_pos);
 
-    //    Ok(w)
-    //}
+        Ok(w)
+    }
 
     // Circom 2 feature flag with version 2
     #[cfg(feature = "circom-2")]
