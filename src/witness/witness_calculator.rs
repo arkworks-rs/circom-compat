@@ -8,7 +8,7 @@ use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeErr
 #[cfg(feature = "circom-2")]
 use num::ToPrimitive;
 
-use super::Circom;
+use super::Circom1;
 #[cfg(feature = "circom-2")]
 use super::Circom2;
 

@@ -13,7 +13,7 @@ pub trait CircomBase {
     fn get_version(&self) -> Result<u32>;
 }
 
-pub trait Circom {
+pub trait Circom1 {
     fn get_ptr_witness(&self, w: u32) -> Result<u32>;
     fn get_fr_len(&self) -> Result<u32>;
     fn get_signal_offset32(
@@ -37,7 +37,7 @@ pub trait Circom2 {
     fn get_witness_size(&self) -> Result<u32>;
 }
 
-impl Circom for Wasm {
+impl Circom1 for Wasm {
     fn get_fr_len(&self) -> Result<u32> {
         self.get_u32("getFrLen")
     }
