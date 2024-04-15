@@ -60,7 +60,7 @@ impl SafeMemory {
     }
 
     /// Gets an immutable view to the memory in 32 byte chunks
-    pub fn view(&self, store: &mut Store) -> MemoryView {
+    pub fn view<'a>(&self, store: &'a mut Store) -> MemoryView<'a> {
         self.memory.view(store)
     }
 
