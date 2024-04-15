@@ -12,7 +12,7 @@ use super::Circom1;
 #[cfg(feature = "circom-2")]
 use super::Circom2;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct WitnessCalculator {
     pub instance: Wasm,
     pub memory: Option<SafeMemory>,
@@ -52,19 +52,16 @@ fn to_array32(s: &BigInt, size: usize) -> Vec<u32> {
 }
 
 impl WitnessCalculator {
-    pub fn new(path: impl AsRef<std::path::Path>) -> Result<Self> {
-        Self::from_file(path)
+    pub fn new(store: &mut Store, path: impl AsRef<std::path::Path>) -> Result<Self> {
+        Self::from_file(store, path)
     }
 
-    pub fn from_file(path: impl AsRef<std::path::Path>) -> Result<Self> {
-        let store = Store::default();
+    pub fn from_file(store: &mut Store, path: impl AsRef<std::path::Path>) -> Result<Self> {
         let module = Module::from_file(&store, path)?;
-        Self::from_module(module)
+        Self::from_module(store, module)
     }
 
-    pub fn from_module(module: Module) -> Result<Self> {
-        let store = module.store();
-
+    pub fn from_module(store: &mut Store, module: Module) -> Result<Self> {
         // Set up the memory
         let memory = Memory::new(store, MemoryType::new(2000, None, false)).unwrap();
         let import_object = imports! {
@@ -85,18 +82,22 @@ impl WitnessCalculator {
                 "writeBufferMessage" => runtime::write_buffer_message(store),
             }
         };
-        let instance = Wasm::new(Instance::new(&module, &import_object)?);
+        let instance = Wasm::new(Instance::new(store, &module, &import_object)?);
 
-        let version = instance.get_version().unwrap_or(1);
+        let version = instance.get_version(store).unwrap_or(1);
 
         // Circom 2 feature flag with version 2
         #[cfg(feature = "circom-2")]
-        fn new_circom2(instance: Wasm, version: u32) -> Result<WitnessCalculator> {
-            let n32 = instance.get_field_num_len32()?;
-            instance.get_raw_prime()?;
+        fn new_circom2(
+            instance: Wasm,
+            store: &mut Store,
+            version: u32,
+        ) -> Result<WitnessCalculator> {
+            let n32 = instance.get_field_num_len32(store)?;
+            instance.get_raw_prime(store)?;
             let mut arr = vec![0; n32 as usize];
             for i in 0..n32 {
-                let res = instance.read_shared_rw_memory(i)?;
+                let res = instance.read_shared_rw_memory(store, i)?;
                 arr[(n32 as usize) - (i as usize) - 1] = res;
             }
             let prime = from_array32(arr);
@@ -111,12 +112,17 @@ impl WitnessCalculator {
             })
         }
 
-        fn new_circom1(instance: Wasm, memory: Memory, version: u32) -> Result<WitnessCalculator> {
+        fn new_circom1(
+            instance: Wasm,
+            store: &mut Store,
+            memory: Memory,
+            version: u32,
+        ) -> Result<WitnessCalculator> {
             // Fallback to Circom 1 behavior
-            let n32 = (instance.get_fr_len()? >> 2) - 2;
+            let n32 = (instance.get_fr_len(store)? >> 2) - 2;
             let mut safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
-            let ptr = instance.get_ptr_raw_prime()?;
-            let prime = safe_memory.read_big(ptr as usize, n32 as usize)?;
+            let ptr = instance.get_ptr_raw_prime(store)?;
+            let prime = safe_memory.read_big(store, ptr as usize, n32 as usize)?;
 
             let n64 = ((prime.bits() - 1) / 64 + 1) as u32;
             safe_memory.prime = prime;
@@ -139,8 +145,8 @@ impl WitnessCalculator {
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
                 match version {
-                    2 => new_circom2(instance, version),
-                    1 => new_circom1(instance, memory, version),
+                    2 => new_circom2(instance, store, version),
+                    1 => new_circom1(instance, store, memory, version),
 
                     _ => panic!("Unknown Circom version")
                 }
@@ -153,16 +159,17 @@ impl WitnessCalculator {
 
     pub fn calculate_witness<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
         &mut self,
+        store: &mut Store,
         inputs: I,
         sanity_check: bool,
     ) -> Result<Vec<BigInt>> {
-        self.instance.init(sanity_check)?;
+        self.instance.init(store, sanity_check)?;
 
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
                 match self.circom_version {
-                    2 => self.calculate_witness_circom2(inputs, sanity_check),
-                    1 => self.calculate_witness_circom1(inputs, sanity_check),
+                    2 => self.calculate_witness_circom2(store, inputs, sanity_check),
+                    1 => self.calculate_witness_circom1(store, inputs, sanity_check),
                     _ => panic!("Unknown Circom version")
                 }
             } else {
@@ -174,48 +181,53 @@ impl WitnessCalculator {
     // Circom 1 default behavior
     fn calculate_witness_circom1<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
         &mut self,
+        store: &mut Store,
         inputs: I,
         sanity_check: bool,
     ) -> Result<Vec<BigInt>> {
-        self.instance.init(sanity_check)?;
+        self.instance.init(store, sanity_check)?;
 
-        let old_mem_free_pos = self.memory.as_ref().unwrap().free_pos();
-        let p_sig_offset = self.memory.as_mut().unwrap().alloc_u32();
-        let p_fr = self.memory.as_mut().unwrap().alloc_fr();
+        let old_mem_free_pos = self.memory.as_ref().unwrap().free_pos(store)?;
+        let p_sig_offset = self.memory.as_mut().unwrap().alloc_u32(store)?;
+        let p_fr = self.memory.as_mut().unwrap().alloc_fr(store)?;
 
         // allocate the inputs
         for (name, values) in inputs.into_iter() {
             let (msb, lsb) = fnv(&name);
 
             self.instance
-                .get_signal_offset32(p_sig_offset, 0, msb, lsb)?;
+                .get_signal_offset32(store, p_sig_offset, 0, msb, lsb)?;
 
             let sig_offset = self
                 .memory
                 .as_ref()
                 .unwrap()
-                .read_u32(p_sig_offset as usize) as usize;
+                .read_u32(store, p_sig_offset as usize)
+                .unwrap() as usize;
 
             for (i, value) in values.into_iter().enumerate() {
                 self.memory
                     .as_mut()
                     .unwrap()
-                    .write_fr(p_fr as usize, &value)?;
+                    .write_fr(store, p_fr as usize, &value)?;
                 self.instance
-                    .set_signal(0, 0, (sig_offset + i) as u32, p_fr)?;
+                    .set_signal(store, 0, 0, (sig_offset + i) as u32, p_fr)?;
             }
         }
 
         let mut w = Vec::new();
 
-        let n_vars = self.instance.get_n_vars()?;
+        let n_vars = self.instance.get_n_vars(store)?;
         for i in 0..n_vars {
-            let ptr = self.instance.get_ptr_witness(i)? as usize;
-            let el = self.memory.as_ref().unwrap().read_fr(ptr)?;
+            let ptr = self.instance.get_ptr_witness(store, i)? as usize;
+            let el = self.memory.as_ref().unwrap().read_fr(store, ptr)?;
             w.push(el);
         }
 
-        self.memory.as_mut().unwrap().set_free_pos(old_mem_free_pos);
+        self.memory
+            .as_mut()
+            .unwrap()
+            .set_free_pos(store, old_mem_free_pos)?;
 
         Ok(w)
     }
@@ -224,12 +236,13 @@ impl WitnessCalculator {
     #[cfg(feature = "circom-2")]
     fn calculate_witness_circom2<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
         &mut self,
+        store: &mut Store,
         inputs: I,
         sanity_check: bool,
     ) -> Result<Vec<BigInt>> {
-        self.instance.init(sanity_check)?;
+        self.instance.init(store, sanity_check)?;
 
-        let n32 = self.instance.get_field_num_len32()?;
+        let n32 = self.instance.get_field_num_len32(store)?;
 
         // allocate the inputs
         for (name, values) in inputs.into_iter() {
@@ -238,21 +251,25 @@ impl WitnessCalculator {
             for (i, value) in values.into_iter().enumerate() {
                 let f_arr = to_array32(&value, n32 as usize);
                 for j in 0..n32 {
-                    self.instance
-                        .write_shared_rw_memory(j, f_arr[(n32 as usize) - 1 - (j as usize)])?;
+                    self.instance.write_shared_rw_memory(
+                        store,
+                        j,
+                        f_arr[(n32 as usize) - 1 - (j as usize)],
+                    )?;
                 }
-                self.instance.set_input_signal(msb, lsb, i as u32)?;
+                self.instance.set_input_signal(store, msb, lsb, i as u32)?;
             }
         }
 
         let mut w = Vec::new();
 
-        let witness_size = self.instance.get_witness_size()?;
+        let witness_size = self.instance.get_witness_size(store)?;
         for i in 0..witness_size {
-            self.instance.get_witness(i)?;
+            self.instance.get_witness(store, i)?;
             let mut arr = vec![0; n32 as usize];
             for j in 0..n32 {
-                arr[(n32 as usize) - 1 - (j as usize)] = self.instance.read_shared_rw_memory(j)?;
+                arr[(n32 as usize) - 1 - (j as usize)] =
+                    self.instance.read_shared_rw_memory(store, j)?;
             }
             w.push(from_array32(arr));
         }
@@ -265,11 +282,12 @@ impl WitnessCalculator {
         I: IntoIterator<Item = (String, Vec<BigInt>)>,
     >(
         &mut self,
+        store: &mut Store,
         inputs: I,
         sanity_check: bool,
     ) -> Result<Vec<E::ScalarField>> {
         use ark_ff::PrimeField;
-        let witness = self.calculate_witness(inputs, sanity_check)?;
+        let witness = self.calculate_witness(store, inputs, sanity_check)?;
         let modulus = <E::ScalarField as PrimeField>::MODULUS;
 
         // convert it to field elements
@@ -295,7 +313,7 @@ impl WitnessCalculator {
 mod runtime {
     use super::*;
 
-    pub fn error(store: &Store) -> Function {
+    pub fn error(store: &mut Store) -> Function {
         #[allow(unused)]
         #[allow(clippy::many_single_char_names)]
         fn func(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32) -> Result<(), RuntimeError> {
@@ -304,47 +322,47 @@ mod runtime {
             println!("runtime error, exiting early: {a} {b} {c} {d} {e} {f}",);
             Err(RuntimeError::user(Box::new(ExitCode(1))))
         }
-        Function::new_native(store, func)
+        Function::new_typed(store, func)
     }
 
     // Circom 2.0
-    pub fn exception_handler(store: &Store) -> Function {
+    pub fn exception_handler(store: &mut Store) -> Function {
         #[allow(unused)]
         fn func(a: i32) {}
-        Function::new_native(store, func)
+        Function::new_typed(store, func)
     }
 
     // Circom 2.0
-    pub fn show_memory(store: &Store) -> Function {
+    pub fn show_memory(store: &mut Store) -> Function {
         #[allow(unused)]
         fn func() {}
-        Function::new_native(store, func)
+        Function::new_typed(store, func)
     }
 
     // Circom 2.0
-    pub fn print_error_message(store: &Store) -> Function {
+    pub fn print_error_message(store: &mut Store) -> Function {
         #[allow(unused)]
         fn func() {}
-        Function::new_native(store, func)
+        Function::new_typed(store, func)
     }
 
     // Circom 2.0
-    pub fn write_buffer_message(store: &Store) -> Function {
+    pub fn write_buffer_message(store: &mut Store) -> Function {
         #[allow(unused)]
         fn func() {}
-        Function::new_native(store, func)
+        Function::new_typed(store, func)
     }
 
-    pub fn log_signal(store: &Store) -> Function {
+    pub fn log_signal(store: &mut Store) -> Function {
         #[allow(unused)]
         fn func(a: i32, b: i32) {}
-        Function::new_native(store, func)
+        Function::new_typed(store, func)
     }
 
-    pub fn log_component(store: &Store) -> Function {
+    pub fn log_component(store: &mut Store) -> Function {
         #[allow(unused)]
         fn func(a: i32) {}
-        Function::new_native(store, func)
+        Function::new_typed(store, func)
     }
 }
 
@@ -453,8 +471,12 @@ mod tests {
     }
 
     fn run_test(case: TestCase) {
-        let mut wtns = WitnessCalculator::new(case.circuit_path).unwrap();
-        assert_eq!({ wtns.instance.get_n_vars().unwrap() }, case.n_vars);
+        let mut store = Store::default();
+        let mut wtns = WitnessCalculator::new(&mut store, case.circuit_path).unwrap();
+        assert_eq!(
+            { wtns.instance.get_n_vars(&mut store).unwrap() },
+            case.n_vars
+        );
         assert_eq!({ wtns.n64 }, case.n64);
 
         let inputs_str = std::fs::read_to_string(case.inputs_path).unwrap();
@@ -479,7 +501,7 @@ mod tests {
             })
             .collect::<HashMap<_, _>>();
 
-        let res = wtns.calculate_witness(inputs, false).unwrap();
+        let res = wtns.calculate_witness(&mut store, inputs, false).unwrap();
         for (r, w) in res.iter().zip(case.witness) {
             assert_eq!(r, &BigInt::from_str(w).unwrap());
         }

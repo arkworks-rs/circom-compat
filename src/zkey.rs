@@ -375,6 +375,7 @@ mod tests {
     use num_bigint::BigUint;
     use serde_json::Value;
     use std::fs::File;
+    use wasmer::Store;
 
     use crate::circom::CircomReduction;
     use crate::witness::WitnessCalculator;
@@ -876,8 +877,8 @@ mod tests {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
         let (params, matrices) = read_zkey(&mut file).unwrap();
-
-        let mut wtns = WitnessCalculator::new("./test-vectors/mycircuit.wasm").unwrap();
+        let mut store = Store::default();
+        let mut wtns = WitnessCalculator::new(&mut store, "./test-vectors/mycircuit.wasm").unwrap();
         let mut inputs: HashMap<String, Vec<num_bigint::BigInt>> = HashMap::new();
         let values = inputs.entry("a".to_string()).or_insert_with(Vec::new);
         values.push(3.into());
@@ -895,7 +896,7 @@ mod tests {
         let s = ark_bn254::Fr::rand(rng);
 
         let full_assignment = wtns
-            .calculate_witness_element::<Bn254, _>(inputs, false)
+            .calculate_witness_element::<Bn254, _>(&mut store, inputs, false)
             .unwrap();
         let proof = Groth16::<Bn254, CircomReduction>::create_proof_with_reduction_and_matrices(
             &params,
