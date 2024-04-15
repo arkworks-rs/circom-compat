@@ -1,7 +1,7 @@
 //! Safe-ish interface for reading and writing specific types to the WASM runtime's memory
 use ark_serialize::CanonicalDeserialize;
 use num_traits::ToPrimitive;
-use wasmer::{Memory, MemoryView};
+use wasmer::{Memory, MemoryAccessError, MemoryView, Store};
 
 // TODO: Decide whether we want Ark here or if it should use a generic BigInt package
 use ark_bn254::FrConfig;
@@ -14,9 +14,10 @@ use color_eyre::Result;
 use std::str::FromStr;
 use std::{convert::TryFrom, ops::Deref};
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct SafeMemory {
     pub memory: Memory,
+    pub store: Store,
     pub prime: BigInt,
 
     short_max: BigInt,
@@ -35,7 +36,7 @@ impl Deref for SafeMemory {
 
 impl SafeMemory {
     /// Creates a new SafeMemory
-    pub fn new(memory: Memory, n32: usize, prime: BigInt) -> Self {
+    pub fn new(memory: Memory, store: Store, n32: usize, prime: BigInt) -> Self {
         // TODO: Figure out a better way to calculate these
         let short_max = BigInt::from(0x8000_0000u64);
         let short_min = BigInt::from_biguint(
@@ -49,6 +50,7 @@ impl SafeMemory {
 
         Self {
             memory,
+            store,
             prime,
 
             short_max,
@@ -59,13 +61,13 @@ impl SafeMemory {
     }
 
     /// Gets an immutable view to the memory in 32 byte chunks
-    pub fn view(&self) -> MemoryView<u32> {
-        self.memory.view()
+    pub fn view(&self) -> MemoryView {
+        self.memory.view(&self.store)
     }
 
     /// Returns the next free position in the memory
-    pub fn free_pos(&self) -> u32 {
-        self.view()[0].get()
+    pub fn free_pos(&self) -> Result<u32, MemoryAccessError> {
+        self.read_u32(0)
     }
 
     /// Sets the next free position in the memory
@@ -74,33 +76,36 @@ impl SafeMemory {
     }
 
     /// Allocates a U32 in memory
-    pub fn alloc_u32(&mut self) -> u32 {
-        let p = self.free_pos();
+    pub fn alloc_u32(&mut self) -> Result<u32, MemoryAccessError> {
+        let p = self.free_pos()?;
         self.set_free_pos(p + 8);
-        p
+        Ok(p)
     }
 
     /// Writes a u32 to the specified memory offset
     pub fn write_u32(&mut self, ptr: usize, num: u32) {
-        let buf = unsafe { self.memory.data_unchecked_mut() };
+        let buf = unsafe { self.view().data_unchecked_mut() };
         buf[ptr..ptr + std::mem::size_of::<u32>()].copy_from_slice(&num.to_le_bytes());
     }
 
     /// Reads a u32 from the specified memory offset
-    pub fn read_u32(&self, ptr: usize) -> u32 {
-        let buf = unsafe { self.memory.data_unchecked() };
-
+    pub fn read_u32(&self, ptr: usize) -> Result<u32, MemoryAccessError> {
         let mut bytes = [0; 4];
-        bytes.copy_from_slice(&buf[ptr..ptr + std::mem::size_of::<u32>()]);
+        self.view().read(ptr as u64, &mut bytes)?;
+        Ok(u32::from_le_bytes(bytes))
+    }
 
-        u32::from_le_bytes(bytes)
+    pub fn read_byte(&self, ptr: usize) -> Result<u8, MemoryAccessError> {
+        let mut bytes = [0; 1];
+        self.view().read(ptr as u64, &mut bytes)?;
+        Ok(u8::from_le_bytes(bytes))
     }
 
     /// Allocates `self.n32 * 4 + 8` bytes in the memory
-    pub fn alloc_fr(&mut self) -> u32 {
-        let p = self.free_pos();
+    pub fn alloc_fr(&mut self) -> Result<u32, MemoryAccessError> {
+        let p = self.free_pos()?;
         self.set_free_pos(p + self.n32 as u32 * 4 + 8);
-        p
+        Ok(p)
     }
 
     /// Writes a Field Element to memory at the specified offset, truncating
@@ -120,25 +125,27 @@ impl SafeMemory {
     }
 
     /// Reads a Field Element from the memory at the specified offset
-    pub fn read_fr(&self, ptr: usize) -> Result<BigInt> {
-        let view = self.memory.view::<u8>();
+    pub fn read_fr(&self, ptr: usize) -> Result<BigInt, MemoryAccessError> {
+        let view = self.view();
+        let test_byte = self.read_byte(ptr + 4 + 3)?;
+        let test_byte2 = self.read_byte(ptr + 3)?;
 
-        let res = if view[ptr + 4 + 3].get() & 0x80 != 0 {
+        let res = if test_byte & 0x80 != 0 {
             let mut num = self.read_big(ptr + 8, self.n32)?;
-            if view[ptr + 4 + 3].get() & 0x40 != 0 {
+            if test_byte & 0x40 != 0 {
                 num = (num * &self.r_inv) % &self.prime
             }
-            num
-        } else if view[ptr + 3].get() & 0x40 != 0 {
-            let mut num = self.read_u32(ptr).into();
+            Ok(num)
+        } else if test_byte2 & 0x40 != 0 {
+            let mut num = self.read_u32(ptr).map(|x| x.into())?;
             // handle small negative
             num -= BigInt::from(0x100000000i64);
-            num
+            Ok(num)
         } else {
-            self.read_u32(ptr).into()
+            self.read_u32(ptr).map(|x| x.into())
         };
 
-        Ok(res)
+        res
     }
 
     fn write_short_positive(&mut self, ptr: usize, fr: &BigInt) -> Result<()> {
@@ -171,7 +178,7 @@ impl SafeMemory {
     }
 
     fn write_big(&self, ptr: usize, num: &BigInt) -> Result<()> {
-        let buf = unsafe { self.memory.data_unchecked_mut() };
+        let buf = unsafe { self.view().data_unchecked_mut() };
 
         // TODO: How do we handle negative bignums?
         let (_, num) = num.clone().into_parts();
@@ -185,8 +192,8 @@ impl SafeMemory {
     }
 
     /// Reads `num_bytes * 32` from the specified memory offset in a Big Integer
-    pub fn read_big(&self, ptr: usize, num_bytes: usize) -> Result<BigInt> {
-        let buf = unsafe { self.memory.data_unchecked() };
+    pub fn read_big(&self, ptr: usize, num_bytes: usize) -> Result<BigInt, MemoryAccessError> {
+        let buf = unsafe { self.view().data_unchecked() };
         let buf = &buf[ptr..ptr + num_bytes * 32];
 
         // TODO: Is there a better way to read big integers?
@@ -211,8 +218,10 @@ mod tests {
     use wasmer::{MemoryType, Store};
 
     fn new() -> SafeMemory {
+        let mut store = Store::default();
         SafeMemory::new(
-            Memory::new(&Store::default(), MemoryType::new(1, None, false)).unwrap(),
+            Memory::new(&mut store, MemoryType::new(1, None, false)).unwrap(),
+            store,
             2,
             BigInt::from_str(
                 "21888242871839275222246405745257275088548364400416034343698204186575808495617",
@@ -234,11 +243,11 @@ mod tests {
         let mut mem = new();
         let num = u32::MAX;
 
-        let inp = mem.read_u32(0);
+        let inp = mem.read_u32(0).unwrap();
         assert_eq!(inp, 0);
 
         mem.write_u32(0, num);
-        let inp = mem.read_u32(0);
+        let inp = mem.read_u32(0).unwrap();
         assert_eq!(inp, num);
     }
 
