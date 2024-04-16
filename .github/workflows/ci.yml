@@ -16,7 +16,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.67.0
+          toolchain: 1.73.0
           override: true
 
       # Install for Anvil
@@ -48,7 +48,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.67.0
+          toolchain: 1.73.0
           override: true
           components: rustfmt, clippy
       - name: cargo fmt
