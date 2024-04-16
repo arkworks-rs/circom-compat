@@ -178,8 +178,8 @@ impl WitnessCalculator {
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
                 match self.circom_version {
-                    2 => self.calculate_witness_circom2(store, inputs, sanity_check),
-                    1 => self.calculate_witness_circom1(store, inputs, sanity_check),
+                    2 => self.calculate_witness_circom2(store, inputs),
+                    1 => self.calculate_witness_circom1(store, inputs),
                     _ => panic!("Unknown Circom version")
                 }
             } else {
@@ -193,10 +193,7 @@ impl WitnessCalculator {
         &mut self,
         store: &mut Store,
         inputs: I,
-        sanity_check: bool,
     ) -> Result<Vec<BigInt>> {
-        self.instance.init(store, sanity_check)?;
-
         let old_mem_free_pos = self.memory.as_ref().unwrap().free_pos(store)?;
         let p_sig_offset = self.memory.as_mut().unwrap().alloc_u32(store)?;
         let p_fr = self.memory.as_mut().unwrap().alloc_fr(store)?;
@@ -248,10 +245,7 @@ impl WitnessCalculator {
         &mut self,
         store: &mut Store,
         inputs: I,
-        sanity_check: bool,
     ) -> Result<Vec<BigInt>> {
-        self.instance.init(store, sanity_check)?;
-
         let n32 = self.instance.get_field_num_len32(store)?;
 
         // allocate the inputs
