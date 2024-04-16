@@ -2,23 +2,22 @@ use super::{fnv, CircomBase, SafeMemory, Wasm};
 use color_eyre::Result;
 use num_bigint::BigInt;
 use num_traits::Zero;
-use std::cell::Cell;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
 
 #[cfg(feature = "circom-2")]
 use num::ToPrimitive;
 
+use super::Circom1;
 #[cfg(feature = "circom-2")]
 use super::Circom2;
-
-use super::Circom;
 
 #[derive(Clone, Debug)]
 pub struct WitnessCalculator {
     pub instance: Wasm,
-    pub memory: SafeMemory,
+    pub memory: Option<SafeMemory>,
     pub n64: u32,
     pub circom_version: u32,
+    pub prime: BigInt,
 }
 
 // Error type to signal end of execution.
@@ -92,9 +91,8 @@ impl WitnessCalculator {
 
         // Circom 2 feature flag with version 2
         #[cfg(feature = "circom-2")]
-        fn new_circom2(instance: Wasm, memory: Memory, version: u32) -> Result<WitnessCalculator> {
+        fn new_circom2(instance: Wasm, version: u32) -> Result<WitnessCalculator> {
             let n32 = instance.get_field_num_len32()?;
-            let mut safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
             instance.get_raw_prime()?;
             let mut arr = vec![0; n32 as usize];
             for i in 0..n32 {
@@ -104,13 +102,13 @@ impl WitnessCalculator {
             let prime = from_array32(arr);
 
             let n64 = ((prime.bits() - 1) / 64 + 1) as u32;
-            safe_memory.prime = prime;
 
             Ok(WitnessCalculator {
                 instance,
-                memory: safe_memory,
+                memory: None,
                 n64,
                 circom_version: version,
+                prime,
             })
         }
 
@@ -122,13 +120,14 @@ impl WitnessCalculator {
             let prime = safe_memory.read_big(ptr as usize, n32 as usize)?;
 
             let n64 = ((prime.bits() - 1) / 64 + 1) as u32;
-            safe_memory.prime = prime;
+            safe_memory.prime = prime.clone();
 
             Ok(WitnessCalculator {
                 instance,
-                memory: safe_memory,
+                memory: Some(safe_memory),
                 n64,
                 circom_version: version,
+                prime,
             })
         }
 
@@ -142,7 +141,7 @@ impl WitnessCalculator {
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
                 match version {
-                    2 => new_circom2(instance, memory, version),
+                    2 => new_circom2(instance, version),
                     1 => new_circom1(instance, memory, version),
                     _ => panic!("Unknown Circom version")
                 }
@@ -180,9 +179,9 @@ impl WitnessCalculator {
     ) -> Result<Vec<BigInt>> {
         self.instance.init(sanity_check)?;
 
-        let old_mem_free_pos = self.memory.free_pos();
-        let p_sig_offset = self.memory.alloc_u32();
-        let p_fr = self.memory.alloc_fr();
+        let old_mem_free_pos = self.memory.as_ref().unwrap().free_pos();
+        let p_sig_offset = self.memory.as_mut().unwrap().alloc_u32();
+        let p_fr = self.memory.as_mut().unwrap().alloc_fr();
 
         // allocate the inputs
         for (name, values) in inputs.into_iter() {
@@ -191,10 +190,17 @@ impl WitnessCalculator {
             self.instance
                 .get_signal_offset32(p_sig_offset, 0, msb, lsb)?;
 
-            let sig_offset = self.memory.read_u32(p_sig_offset as usize) as usize;
+            let sig_offset = self
+                .memory
+                .as_ref()
+                .unwrap()
+                .read_u32(p_sig_offset as usize) as usize;
 
             for (i, value) in values.into_iter().enumerate() {
-                self.memory.write_fr(p_fr as usize, &value)?;
+                self.memory
+                    .as_mut()
+                    .unwrap()
+                    .write_fr(p_fr as usize, &value)?;
                 self.instance
                     .set_signal(0, 0, (sig_offset + i) as u32, p_fr)?;
             }
@@ -205,11 +211,11 @@ impl WitnessCalculator {
         let n_vars = self.instance.get_n_vars()?;
         for i in 0..n_vars {
             let ptr = self.instance.get_ptr_witness(i)? as usize;
-            let el = self.memory.read_fr(ptr)?;
+            let el = self.memory.as_ref().unwrap().read_fr(ptr)?;
             w.push(el);
         }
 
-        self.memory.set_free_pos(old_mem_free_pos);
+        self.memory.as_mut().unwrap().set_free_pos(old_mem_free_pos);
 
         Ok(w)
     }
@@ -282,20 +288,6 @@ impl WitnessCalculator {
             .collect::<Vec<_>>();
 
         Ok(witness)
-    }
-
-    pub fn get_witness_buffer(&self) -> Result<Vec<u8>> {
-        let ptr = self.instance.get_ptr_witness_buffer()? as usize;
-
-        let view = self.memory.memory.view::<u8>();
-
-        let len = self.instance.get_n_vars()? * self.n64 * 8;
-        let arr = view[ptr..ptr + len as usize]
-            .iter()
-            .map(Cell::get)
-            .collect::<Vec<_>>();
-
-        Ok(arr)
     }
 }
 
@@ -463,7 +455,7 @@ mod tests {
     fn run_test(case: TestCase) {
         let mut wtns = WitnessCalculator::new(case.circuit_path).unwrap();
         assert_eq!(
-            wtns.memory.prime.to_str_radix(16),
+            wtns.prime.to_str_radix(16),
             "30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001".to_lowercase()
         );
         assert_eq!({ wtns.instance.get_n_vars().unwrap() }, case.n_vars);

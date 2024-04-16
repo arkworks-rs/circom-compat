@@ -10,7 +10,7 @@ pub(super) use circom::{CircomBase, Wasm};
 #[cfg(feature = "circom-2")]
 pub(super) use circom::Circom2;
 
-pub(super) use circom::Circom;
+pub(super) use circom::Circom1;
 
 use fnv::FnvHasher;
 use std::hash::Hasher;
