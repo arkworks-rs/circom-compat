@@ -52,7 +52,7 @@ impl<E: Pairing> CircomBuilder<E> {
 
     /// Pushes a Circom input at the specified name.
     pub fn push_input<T: Into<BigInt>>(&mut self, name: impl ToString, val: T) {
-        let values = self.inputs.entry(name.to_string()).or_insert_with(Vec::new);
+        let values = self.inputs.entry(name.to_string()).or_default();
         values.push(val.into());
     }
 

@@ -39,10 +39,9 @@ impl SafeMemory {
     pub fn new(memory: Memory, n32: usize, prime: BigInt) -> Self {
         // TODO: Figure out a better way to calculate these
         let short_max = BigInt::from(0x8000_0000u64);
-        let short_min = BigInt::from_biguint(
-            num_bigint::Sign::NoSign,
-            BigUint::try_from(FrConfig::MODULUS).unwrap(),
-        ) - &short_max;
+        let short_min =
+            BigInt::from_biguint(num_bigint::Sign::NoSign, BigUint::from(FrConfig::MODULUS))
+                - &short_max;
         let r_inv = BigInt::from_str(
             "9915499612839321149637521777990102151350674507940716049588462388200839649614",
         )
@@ -133,7 +132,7 @@ impl SafeMemory {
         let test_byte = self.read_byte(store, ptr + 4 + 3)?;
         let test_byte2 = self.read_byte(store, ptr + 3)?;
 
-        let res = if test_byte & 0x80 != 0 {
+        if test_byte & 0x80 != 0 {
             let mut num = self.read_big(store, ptr + 8, self.n32)?;
             if test_byte & 0x40 != 0 {
                 num = (num * &self.r_inv) % &self.prime
@@ -146,9 +145,7 @@ impl SafeMemory {
             Ok(num)
         } else {
             self.read_u32(store, ptr).map(|x| x.into())
-        };
-
-        res
+        }
     }
 
     fn write_short_positive(&self, store: &mut Store, ptr: usize, fr: &BigInt) -> Result<()> {
@@ -204,7 +201,7 @@ impl SafeMemory {
         self.view(store).read(ptr as u64, &mut buf)?;
         // TODO: Is there a better way to read big integers?
         let big = BigInteger256::deserialize_uncompressed(&mut Cursor::new(buf)).unwrap();
-        let big = BigUint::try_from(big).unwrap();
+        let big = BigUint::from(big);
         Ok(big.into())
     }
 }
