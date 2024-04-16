@@ -843,8 +843,8 @@ mod tests {
         G2Affine::from(G2Projective::new(x, y, z))
     }
 
-    #[test]
-    fn verify_proof_with_zkey_with_r1cs() {
+    #[tokio::test]
+    async fn verify_proof_with_zkey_with_r1cs() {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
         let (params, _matrices) = read_zkey(&mut file).unwrap(); // binfile.proving_key().unwrap();
@@ -872,8 +872,8 @@ mod tests {
         assert!(verified);
     }
 
-    #[test]
-    fn verify_proof_with_zkey_without_r1cs() {
+    #[tokio::test]
+    async fn verify_proof_with_zkey_without_r1cs() {
         let path = "./test-vectors/test.zkey";
         let mut file = File::open(path).unwrap();
         let (params, matrices) = read_zkey(&mut file).unwrap();

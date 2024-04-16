@@ -1,9 +1,9 @@
 use color_eyre::Result;
-use wasmer::{Function, Instance, Store, Value};
+use wasmer::{Exports, Function, Store, Value};
 
 #[derive(Debug)]
 pub struct Wasm {
-    pub instance: Instance,
+    pub exports: Exports,
 }
 
 pub trait CircomBase {
@@ -57,7 +57,7 @@ impl Circom1 for Wasm {
     }
 
     fn get_ptr_witness(&self, store: &mut Store, w: u32) -> Result<u32> {
-        let func = &self.func("getPWitness");
+        let func = self.func("getPWitness");
 
         let res = func.call(store, &[w.into()])?;
 
@@ -158,7 +158,7 @@ impl CircomBase for Wasm {
 
     // Default to version 1 if it isn't explicitly defined
     fn get_version(&self, store: &mut Store) -> Result<u32> {
-        match self.instance.exports.get_function("getVersion") {
+        match self.exports.get_function("getVersion") {
             Ok(func) => Ok(func.call(store, &[])?[0].unwrap_i32() as u32),
             Err(_) => Ok(1),
         }
@@ -171,15 +171,14 @@ impl CircomBase for Wasm {
     }
 
     fn func(&self, name: &str) -> &Function {
-        self.instance
-            .exports
+        self.exports
             .get_function(name)
             .unwrap_or_else(|_| panic!("function {} not found", name))
     }
 }
 
 impl Wasm {
-    pub fn new(instance: Instance) -> Self {
-        Self { instance }
+    pub fn new(exports: Exports) -> Self {
+        Self { exports }
     }
 }

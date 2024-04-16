@@ -3,6 +3,7 @@ use color_eyre::Result;
 use num_bigint::BigInt;
 use num_traits::Zero;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
+use wasmer_wasix::{generate_import_object_from_env, WasiEnv, WasiVersion};
 
 #[cfg(feature = "circom-2")]
 use num::ToPrimitive;
@@ -64,7 +65,7 @@ impl WitnessCalculator {
     pub fn from_module(store: &mut Store, module: Module) -> Result<Self> {
         // Set up the memory
         let memory = Memory::new(store, MemoryType::new(2000, None, false)).unwrap();
-        let import_object = imports! {
+        let mut import_object = imports! {
             "env" => {
                 "memory" => memory.clone(),
             },
@@ -82,10 +83,18 @@ impl WitnessCalculator {
                 "writeBufferMessage" => runtime::write_buffer_message(store),
             }
         };
-        let instance = Wasm::new(Instance::new(store, &module, &import_object)?);
 
-        let version = instance.get_version(store).unwrap_or(1);
+        let mut wasi_env = WasiEnv::builder("calculateWitness").finalize(store)?;
+        let wasi_env_imports =
+            generate_import_object_from_env(store, &wasi_env.env, WasiVersion::Snapshot1);
+        import_object.extend(&wasi_env_imports);
 
+        let instance = Instance::new(store, &module, &import_object)?;
+        let exports = instance.exports.clone();
+        let wasm = Wasm::new(exports);
+        wasi_env.initialize_with_memory(store, instance, Some(memory.clone()), false)?;
+
+        let version = wasm.get_version(store).unwrap_or(1);
         // Circom 2 feature flag with version 2
         #[cfg(feature = "circom-2")]
         fn new_circom2(
@@ -147,8 +156,8 @@ impl WitnessCalculator {
         cfg_if::cfg_if! {
             if #[cfg(feature = "circom-2")] {
                 match version {
-                    2 => new_circom2(instance, store, version),
-                    1 => new_circom1(instance, store, memory, version),
+                    2 => new_circom2(wasm, store, version),
+                    1 => new_circom1(wasm, store, memory, version),
 
                     _ => panic!("Unknown Circom version")
                 }
@@ -386,8 +395,8 @@ mod tests {
         path.to_string_lossy().to_string()
     }
 
-    #[test]
-    fn multiplier_1() {
+    #[tokio::test]
+    async fn multiplier_1() {
         run_test(TestCase {
             circuit_path: root_path("test-vectors/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input1.json").as_str(),
@@ -397,8 +406,8 @@ mod tests {
         });
     }
 
-    #[test]
-    fn multiplier_2() {
+    #[tokio::test]
+    async fn multiplier_2() {
         run_test(TestCase {
             circuit_path: root_path("test-vectors/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input2.json").as_str(),
@@ -413,8 +422,8 @@ mod tests {
         });
     }
 
-    #[test]
-    fn multiplier_3() {
+    #[tokio::test]
+    async fn multiplier_3() {
         run_test(TestCase {
             circuit_path: root_path("test-vectors/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input3.json").as_str(),
@@ -429,8 +438,8 @@ mod tests {
         });
     }
 
-    #[test]
-    fn safe_multipler() {
+    #[tokio::test]
+    async fn safe_multipler() {
         let witness =
             std::fs::read_to_string(root_path("test-vectors/safe-circuit-witness.json")).unwrap();
         let witness: Vec<String> = serde_json::from_str(&witness).unwrap();
@@ -444,8 +453,8 @@ mod tests {
         });
     }
 
-    #[test]
-    fn smt_verifier() {
+    #[tokio::test]
+    async fn smt_verifier() {
         let witness =
             std::fs::read_to_string(root_path("test-vectors/smtverifier10-witness.json")).unwrap();
         let witness: Vec<String> = serde_json::from_str(&witness).unwrap();
