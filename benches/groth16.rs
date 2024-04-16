@@ -6,6 +6,7 @@ use ark_std::rand::thread_rng;
 
 use ark_bn254::Bn254;
 use ark_groth16::Groth16;
+use wasmer::Store;
 
 use std::{collections::HashMap, fs::File};
 
@@ -28,14 +29,17 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
 
         inputs
     };
-
-    let mut wtns = WitnessCalculator::new(format!(
-        "./test-vectors/complex-circuit/complex-circuit-{}-{}.wasm",
-        i, j
-    ))
+    let mut store = Store::default();
+    let mut wtns = WitnessCalculator::new(
+        &mut store,
+        format!(
+            "./test-vectors/complex-circuit/complex-circuit-{}-{}.wasm",
+            i, j
+        ),
+    )
     .unwrap();
     let full_assignment = wtns
-        .calculate_witness_element::<Bn254, _>(inputs, false)
+        .calculate_witness_element::<Bn254, _>(&mut store, inputs, false)
         .unwrap();
 
     let mut rng = thread_rng();
