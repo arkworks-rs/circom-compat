@@ -2,7 +2,6 @@ use super::{fnv, CircomBase, SafeMemory, Wasm};
 use color_eyre::Result;
 use num_bigint::BigInt;
 use num_traits::Zero;
-// use std::cell::Cell;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
 
 #[cfg(feature = "circom-2")]
@@ -18,6 +17,7 @@ pub struct WitnessCalculator {
     pub memory: Option<SafeMemory>,
     pub n64: u32,
     pub circom_version: u32,
+    pub prime: BigInt,
 }
 
 // Error type to signal end of execution.
@@ -108,6 +108,7 @@ impl WitnessCalculator {
                 memory: None,
                 n64,
                 circom_version: version,
+                prime,
             })
         }
 
@@ -119,13 +120,14 @@ impl WitnessCalculator {
             let prime = safe_memory.read_big(ptr as usize, n32 as usize)?;
 
             let n64 = ((prime.bits() - 1) / 64 + 1) as u32;
-            safe_memory.prime = prime;
+            safe_memory.prime = prime.clone();
 
             Ok(WitnessCalculator {
                 instance,
                 memory: Some(safe_memory),
                 n64,
                 circom_version: version,
+                prime,
             })
         }
 
@@ -141,12 +143,10 @@ impl WitnessCalculator {
                 match version {
                     2 => new_circom2(instance, version),
                     1 => new_circom1(instance, memory, version),
-
                     _ => panic!("Unknown Circom version")
                 }
             } else {
                 new_circom1(instance, memory, version)
-                _ => panic!("Unknown Circom version")
             }
         }
     }
@@ -454,6 +454,10 @@ mod tests {
 
     fn run_test(case: TestCase) {
         let mut wtns = WitnessCalculator::new(case.circuit_path).unwrap();
+        assert_eq!(
+            wtns.prime.to_str_radix(16),
+            "30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001".to_lowercase()
+        );
         assert_eq!({ wtns.instance.get_n_vars().unwrap() }, case.n_vars);
         assert_eq!({ wtns.n64 }, case.n64);
 
