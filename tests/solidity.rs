@@ -2,7 +2,7 @@ use ark_circom::{ethereum, CircomBuilder, CircomConfig};
 use ark_std::rand::thread_rng;
 use color_eyre::Result;
 
-use ark_bn254::Bn254;
+use ark_bn254::{Bn254, Fr};
 use ark_crypto_primitives::snark::SNARK;
 use ark_groth16::Groth16;
 
@@ -16,7 +16,7 @@ use std::{convert::TryFrom, sync::Arc};
 
 #[tokio::test]
 async fn solidity_verifier() -> Result<()> {
-    let cfg = CircomConfig::<Bn254>::new(
+    let cfg = CircomConfig::<Fr>::new(
         "./test-vectors/mycircuit.wasm",
         "./test-vectors/mycircuit.r1cs",
     )?;
@@ -61,7 +61,6 @@ async fn solidity_verifier() -> Result<()> {
 // the ones expected by the abigen'd types. Could we maybe provide a convenience
 // macro for these, given that there's room for implementation error?
 abigen!(Groth16Verifier, "./tests/verifier_artifact.json");
-use groth_16_verifier::{G1Point, G2Point, Proof, VerifyingKey};
 impl From<ethereum::G1> for G1Point {
     fn from(src: ethereum::G1) -> Self {
         Self { x: src.x, y: src.y }

@@ -4,7 +4,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use ark_circom::{read_zkey, CircomReduction, WitnessCalculator};
 use ark_std::rand::thread_rng;
 
-use ark_bn254::Bn254;
+use ark_bn254::{Bn254, Fr};
 use ark_groth16::Groth16;
 
 use std::{collections::HashMap, fs::File};
@@ -35,7 +35,7 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
     ))
     .unwrap();
     let full_assignment = wtns
-        .calculate_witness_element::<Bn254, _>(inputs, false)
+        .calculate_witness_element::<Fr, _>(inputs, false)
         .unwrap();
 
     let mut rng = thread_rng();
