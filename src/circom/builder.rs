@@ -1,5 +1,5 @@
 use ark_ec::pairing::Pairing;
-use std::{fs::File, path::Path};
+use std::{fs::File, io::BufReader, path::Path};
 
 use super::{CircomCircuit, R1CS};
 
@@ -26,7 +26,7 @@ pub struct CircomConfig<E: Pairing> {
 impl<E: Pairing> CircomConfig<E> {
     pub fn new(wtns: impl AsRef<Path>, r1cs: impl AsRef<Path>) -> Result<Self> {
         let wtns = WitnessCalculator::new(wtns).unwrap();
-        let reader = File::open(r1cs)?;
+        let reader = BufReader::new(File::open(r1cs)?);
         let r1cs = R1CSFile::new(reader)?.into();
         Ok(Self {
             wtns,
