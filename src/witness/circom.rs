@@ -7,9 +7,15 @@ pub struct Wasm(Instance);
 pub trait CircomBase {
     fn init(&self, sanity_check: bool) -> Result<()>;
     fn func(&self, name: &str) -> &Function;
-    fn get_ptr_witness_buffer(&self) -> Result<u32>;
-    fn get_ptr_witness(&self, w: u32) -> Result<u32>;
     fn get_n_vars(&self) -> Result<u32>;
+    fn get_u32(&self, name: &str) -> Result<u32>;
+    // Only exists natively in Circom2, hardcoded for Circom
+    fn get_version(&self) -> Result<u32>;
+}
+
+pub trait Circom1 {
+    fn get_ptr_witness(&self, w: u32) -> Result<u32>;
+    fn get_fr_len(&self) -> Result<u32>;
     fn get_signal_offset32(
         &self,
         p_sig_offset: u32,
@@ -18,13 +24,6 @@ pub trait CircomBase {
         hash_lsb: u32,
     ) -> Result<()>;
     fn set_signal(&self, c_idx: u32, component: u32, signal: u32, p_val: u32) -> Result<()>;
-    fn get_u32(&self, name: &str) -> Result<u32>;
-    // Only exists natively in Circom2, hardcoded for Circom
-    fn get_version(&self) -> Result<u32>;
-}
-
-pub trait Circom {
-    fn get_fr_len(&self) -> Result<u32>;
     fn get_ptr_raw_prime(&self) -> Result<u32>;
 }
 
@@ -38,13 +37,45 @@ pub trait Circom2 {
     fn get_witness_size(&self) -> Result<u32>;
 }
 
-impl Circom for Wasm {
+impl Circom1 for Wasm {
     fn get_fr_len(&self) -> Result<u32> {
         self.get_u32("getFrLen")
     }
 
     fn get_ptr_raw_prime(&self) -> Result<u32> {
         self.get_u32("getPRawPrime")
+    }
+
+    fn get_ptr_witness(&self, w: u32) -> Result<u32> {
+        let func = self.func("getPWitness");
+        let res = func.call(&[w.into()])?;
+
+        Ok(res[0].unwrap_i32() as u32)
+    }
+
+    fn get_signal_offset32(
+        &self,
+        p_sig_offset: u32,
+        component: u32,
+        hash_msb: u32,
+        hash_lsb: u32,
+    ) -> Result<()> {
+        let func = self.func("getSignalOffset32");
+        func.call(&[
+            p_sig_offset.into(),
+            component.into(),
+            hash_msb.into(),
+            hash_lsb.into(),
+        ])?;
+
+        Ok(())
+    }
+
+    fn set_signal(&self, c_idx: u32, component: u32, signal: u32, p_val: u32) -> Result<()> {
+        let func = self.func("setSignal");
+        func.call(&[c_idx.into(), component.into(), signal.into(), p_val.into()])?;
+
+        Ok(())
     }
 }
 
@@ -96,44 +127,8 @@ impl CircomBase for Wasm {
         Ok(())
     }
 
-    fn get_ptr_witness_buffer(&self) -> Result<u32> {
-        self.get_u32("getWitnessBuffer")
-    }
-
-    fn get_ptr_witness(&self, w: u32) -> Result<u32> {
-        let func = self.func("getPWitness");
-        let res = func.call(&[w.into()])?;
-
-        Ok(res[0].unwrap_i32() as u32)
-    }
-
     fn get_n_vars(&self) -> Result<u32> {
         self.get_u32("getNVars")
-    }
-
-    fn get_signal_offset32(
-        &self,
-        p_sig_offset: u32,
-        component: u32,
-        hash_msb: u32,
-        hash_lsb: u32,
-    ) -> Result<()> {
-        let func = self.func("getSignalOffset32");
-        func.call(&[
-            p_sig_offset.into(),
-            component.into(),
-            hash_msb.into(),
-            hash_lsb.into(),
-        ])?;
-
-        Ok(())
-    }
-
-    fn set_signal(&self, c_idx: u32, component: u32, signal: u32, p_val: u32) -> Result<()> {
-        let func = self.func("setSignal");
-        func.call(&[c_idx.into(), component.into(), signal.into(), p_val.into()])?;
-
-        Ok(())
     }
 
     // Default to version 1 if it isn't explicitly defined
