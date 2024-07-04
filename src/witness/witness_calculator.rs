@@ -3,7 +3,7 @@ use color_eyre::Result;
 use num_bigint::BigInt;
 use num_traits::Zero;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
-use wasmer_wasix::{generate_import_object_from_env, WasiEnv, WasiVersion};
+use wasmer_wasix::WasiEnv;
 
 #[cfg(feature = "circom-2")]
 use num::ToPrimitive;
@@ -57,15 +57,23 @@ impl WitnessCalculator {
         Self::from_file(store, path)
     }
 
+    pub fn new_from_wasm(store: &mut Store, wasm: Wasm) -> Result<Self> {
+        Self::from_wasm(store, wasm)
+    }
+
     pub fn from_file(store: &mut Store, path: impl AsRef<std::path::Path>) -> Result<Self> {
         let module = Module::from_file(&store, path)?;
         Self::from_module(store, module)
     }
 
     pub fn from_module(store: &mut Store, module: Module) -> Result<Self> {
-        // Set up the memory
+        let wasm = Self::make_wasm_runtime(store, module)?;
+        Self::from_wasm(store, wasm)
+    }
+
+    pub fn make_wasm_runtime(store: &mut Store, module: Module) -> Result<Wasm> {
         let memory = Memory::new(store, MemoryType::new(2000, None, false)).unwrap();
-        let mut import_object = imports! {
+        let import_object = imports! {
             "env" => {
                 "memory" => memory.clone(),
             },
@@ -83,17 +91,15 @@ impl WitnessCalculator {
                 "writeBufferMessage" => runtime::write_buffer_message(store),
             }
         };
-
-        let mut wasi_env = WasiEnv::builder("calculateWitness").finalize(store)?;
-        let wasi_env_imports =
-            generate_import_object_from_env(store, &wasi_env.env, WasiVersion::Snapshot1);
-        import_object.extend(&wasi_env_imports);
-
         let instance = Instance::new(store, &module, &import_object)?;
         let exports = instance.exports.clone();
-        let wasm = Wasm::new(exports);
+        let mut wasi_env = WasiEnv::builder("calculateWitness").finalize(store)?;
         wasi_env.initialize_with_memory(store, instance, Some(memory.clone()), false)?;
+        let wasm = Wasm::new(exports, memory);
+        Ok(wasm)
+    }
 
+    pub fn from_wasm(store: &mut Store, wasm: Wasm) -> Result<Self> {
         let version = wasm.get_version(store).unwrap_or(1);
         // Circom 2 feature flag with version 2
         #[cfg(feature = "circom-2")]
@@ -125,12 +131,12 @@ impl WitnessCalculator {
         fn new_circom1(
             instance: Wasm,
             store: &mut Store,
-            memory: Memory,
             version: u32,
         ) -> Result<WitnessCalculator> {
             // Fallback to Circom 1 behavior
             let n32 = (instance.get_fr_len(store)? >> 2) - 2;
-            let mut safe_memory = SafeMemory::new(memory, n32 as usize, BigInt::zero());
+            let mut safe_memory =
+                SafeMemory::new(instance.memory.clone(), n32 as usize, BigInt::zero());
             let ptr = instance.get_ptr_raw_prime(store)?;
             let prime = safe_memory.read_big(store, ptr as usize, n32 as usize)?;
 
@@ -157,7 +163,7 @@ impl WitnessCalculator {
             if #[cfg(feature = "circom-2")] {
                 match version {
                     2 => new_circom2(wasm, store, version),
-                    1 => new_circom1(wasm, store, memory, version),
+                    1 => new_circom1(wasm, store, version),
 
                     _ => panic!("Unknown Circom version")
                 }
