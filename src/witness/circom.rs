@@ -1,9 +1,10 @@
 use color_eyre::Result;
-use wasmer::{Exports, Function, Store, Value};
+use wasmer::{Exports, Function, Memory, Store, Value};
 
 #[derive(Debug)]
 pub struct Wasm {
     pub exports: Exports,
+    pub memory: Memory,
 }
 
 pub trait CircomBase {
@@ -178,7 +179,7 @@ impl CircomBase for Wasm {
 }
 
 impl Wasm {
-    pub fn new(exports: Exports) -> Self {
-        Self { exports }
+    pub fn new(exports: Exports, memory: Memory) -> Self {
+        Self { exports, memory }
     }
 }
