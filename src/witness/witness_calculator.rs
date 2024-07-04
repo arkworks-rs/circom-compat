@@ -57,10 +57,6 @@ impl WitnessCalculator {
         Self::from_file(store, path)
     }
 
-    pub fn new_from_wasm(store: &mut Store, wasm: Wasm) -> Result<Self> {
-        Self::from_wasm(store, wasm)
-    }
-
     pub fn from_file(store: &mut Store, path: impl AsRef<std::path::Path>) -> Result<Self> {
         let module = Module::from_file(&store, path)?;
         Self::from_module(store, module)
@@ -68,7 +64,7 @@ impl WitnessCalculator {
 
     pub fn from_module(store: &mut Store, module: Module) -> Result<Self> {
         let wasm = Self::make_wasm_runtime(store, module)?;
-        Self::from_wasm(store, wasm)
+        Self::new_from_wasm(store, wasm)
     }
 
     pub fn make_wasm_runtime(store: &mut Store, module: Module) -> Result<Wasm> {
@@ -99,7 +95,7 @@ impl WitnessCalculator {
         Ok(wasm)
     }
 
-    pub fn from_wasm(store: &mut Store, wasm: Wasm) -> Result<Self> {
+    pub fn new_from_wasm(store: &mut Store, wasm: Wasm) -> Result<Self> {
         let version = wasm.get_version(store).unwrap_or(1);
         // Circom 2 feature flag with version 2
         #[cfg(feature = "circom-2")]

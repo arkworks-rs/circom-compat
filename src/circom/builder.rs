@@ -7,7 +7,10 @@ use super::{CircomCircuit, R1CS};
 use num_bigint::BigInt;
 use std::collections::HashMap;
 
-use crate::{circom::R1CSFile, witness::WitnessCalculator};
+use crate::{
+    circom::R1CSFile,
+    witness::{Wasm, WitnessCalculator},
+};
 use color_eyre::Result;
 
 #[derive(Debug)]
@@ -29,6 +32,19 @@ impl<E: Pairing> CircomConfig<E> {
     pub fn new(wtns: impl AsRef<Path>, r1cs: impl AsRef<Path>) -> Result<Self> {
         let mut store = Store::default();
         let wtns = WitnessCalculator::new(&mut store, wtns).unwrap();
+        let reader = File::open(r1cs)?;
+        let r1cs = R1CSFile::new(reader)?.into();
+        Ok(Self {
+            wtns,
+            r1cs,
+            store,
+            sanity_check: false,
+        })
+    }
+
+    pub fn new_from_wasm(wasm: Wasm, r1cs: impl AsRef<Path>) -> Result<Self> {
+        let mut store = Store::default();
+        let wtns = WitnessCalculator::new_from_wasm(&mut store, wasm).unwrap();
         let reader = File::open(r1cs)?;
         let r1cs = R1CSFile::new(reader)?.into();
         Ok(Self {
