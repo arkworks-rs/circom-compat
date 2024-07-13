@@ -89,8 +89,8 @@ mod tests {
     use ark_bn254::Fr;
     use ark_relations::r1cs::ConstraintSystem;
 
-    #[test]
-    fn satisfied() {
+    #[tokio::test]
+    async fn satisfied() {
         let cfg = CircomConfig::<Fr>::new(
             "./test-vectors/mycircuit.wasm",
             "./test-vectors/mycircuit.r1cs",
