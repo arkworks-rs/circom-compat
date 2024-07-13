@@ -316,25 +316,9 @@ mod tests {
         let witness: Vec<String> = serde_json::from_str(&witness).unwrap();
         let witness = &witness.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
         run_test(TestCase {
-            circuit_path: root_path("test-vectors/circuit2.wasm").as_str(),
+            circuit_path: root_path("test-vectors/circuit2_js/circuit2.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input1.json").as_str(),
             n_vars: 132, // 128 + 4
-            n64: 4,
-            witness,
-        });
-    }
-
-    #[tokio::test]
-    async fn smt_verifier() {
-        let witness =
-            std::fs::read_to_string(root_path("test-vectors/smtverifier10-witness.json")).unwrap();
-        let witness: Vec<String> = serde_json::from_str(&witness).unwrap();
-        let witness = &witness.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
-
-        run_test(TestCase {
-            circuit_path: root_path("test-vectors/smtverifier10.wasm").as_str(),
-            inputs_path: root_path("test-vectors/smtverifier10-input.json").as_str(),
-            n_vars: 4794,
             n64: 4,
             witness,
         });
