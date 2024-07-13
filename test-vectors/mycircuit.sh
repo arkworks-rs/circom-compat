@@ -19,5 +19,5 @@ else
 fi
 
 
-echo "zkey"
+echo "writing zkey"
 snarkjs zkey new mycircuit.r1cs powersOfTau28_hez_final_17.ptau test.zkey
