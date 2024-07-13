@@ -255,7 +255,6 @@ mod tests {
     struct TestCase<'a> {
         circuit_path: &'a str,
         inputs_path: &'a str,
-        n_vars: u32,
         n64: u32,
         witness: &'a [&'a str],
     }
@@ -271,7 +270,6 @@ mod tests {
         run_test(TestCase {
             circuit_path: root_path("test-vectors/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input1.json").as_str(),
-            n_vars: 4,
             n64: 4,
             witness: &["1", "33", "3", "11"],
         });
@@ -282,7 +280,6 @@ mod tests {
         run_test(TestCase {
             circuit_path: root_path("test-vectors/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input2.json").as_str(),
-            n_vars: 4,
             n64: 4,
             witness: &[
                 "1",
@@ -298,7 +295,6 @@ mod tests {
         run_test(TestCase {
             circuit_path: root_path("test-vectors/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input3.json").as_str(),
-            n_vars: 4,
             n64: 4,
             witness: &[
                 "1",
@@ -318,7 +314,6 @@ mod tests {
         run_test(TestCase {
             circuit_path: root_path("test-vectors/circuit2_js/circuit2.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input1.json").as_str(),
-            n_vars: 132, // 128 + 4
             n64: 4,
             witness,
         });
