@@ -268,7 +268,7 @@ mod tests {
     #[tokio::test]
     async fn multiplier_1() {
         run_test(TestCase {
-            circuit_path: root_path("test-vectors/mycircuit.wasm").as_str(),
+            circuit_path: root_path("test-vectors/mycircuit_js/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input1.json").as_str(),
             n64: 4,
             witness: &["1", "33", "3", "11"],
@@ -278,7 +278,7 @@ mod tests {
     #[tokio::test]
     async fn multiplier_2() {
         run_test(TestCase {
-            circuit_path: root_path("test-vectors/mycircuit.wasm").as_str(),
+            circuit_path: root_path("test-vectors/mycircuit_js/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input2.json").as_str(),
             n64: 4,
             witness: &[
@@ -293,7 +293,7 @@ mod tests {
     #[tokio::test]
     async fn multiplier_3() {
         run_test(TestCase {
-            circuit_path: root_path("test-vectors/mycircuit.wasm").as_str(),
+            circuit_path: root_path("test-vectors/mycircuit_js/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input3.json").as_str(),
             n64: 4,
             witness: &[

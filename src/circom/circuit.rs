@@ -96,7 +96,7 @@ mod tests {
     #[tokio::test]
     async fn satisfied() {
         let cfg = CircomConfig::<Bn254>::new(
-            "./test-vectors/mycircuit.wasm",
+            "./test-vectors/mycircuit_js/mycircuit.wasm",
             "./test-vectors/mycircuit.r1cs",
         )
         .unwrap();

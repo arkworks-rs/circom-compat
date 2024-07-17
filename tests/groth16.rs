@@ -75,8 +75,8 @@ async fn groth16_proof_wrong_input() -> Result<()> {
 #[tokio::test]
 async fn groth16_proof_circom() -> Result<()> {
     let cfg = CircomConfig::<Bn254>::new(
-        "./test-vectors/circom2_multiplier2.wasm",
-        "./test-vectors/circom2_multiplier2.r1cs",
+        "test-vectors/circuit2_js/circuit2.wasm",
+        "test-vectors/circuit2.r1cs",
     )?;
     let mut builder = CircomBuilder::new(cfg);
     builder.push_input("a", 3);
@@ -106,8 +106,8 @@ async fn groth16_proof_circom() -> Result<()> {
 #[tokio::test]
 async fn witness_generation_circom() -> Result<()> {
     let cfg = CircomConfig::<Bn254>::new(
-        "./test-vectors/circom2_multiplier2.wasm",
-        "./test-vectors/circom2_multiplier2.r1cs",
+        "test-vectors/circuit2_js/circuit2.wasm",
+        "test-vectors/circuit2.r1cs",
     )?;
     let mut builder = CircomBuilder::new(cfg);
     builder.push_input("a", 3);
