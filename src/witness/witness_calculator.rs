@@ -115,14 +115,6 @@ impl WitnessCalculator {
     ) -> Result<Vec<BigInt>> {
         self.instance.init(store, sanity_check)?;
 
-        self.calculate_witness_circom2(store, inputs)
-    }
-
-    fn calculate_witness_circom2<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
-        &mut self,
-        store: &mut Store,
-        inputs: I,
-    ) -> Result<Vec<BigInt>> {
         let n32 = self.instance.get_field_num_len32(store)?;
 
         // allocate the inputs
