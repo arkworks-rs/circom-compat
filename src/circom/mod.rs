@@ -1,5 +1,3 @@
-use ark_ec::pairing::Pairing;
-
 pub mod r1cs_reader;
 pub use r1cs_reader::{R1CSFile, R1CS};
 
@@ -12,5 +10,5 @@ pub use builder::{CircomBuilder, CircomConfig};
 mod qap;
 pub use qap::CircomReduction;
 
-pub type Constraints<E> = (ConstraintVec<E>, ConstraintVec<E>, ConstraintVec<E>);
-pub type ConstraintVec<E> = Vec<(usize, <E as Pairing>::ScalarField)>;
+pub type Constraints<F> = (ConstraintVec<F>, ConstraintVec<F>, ConstraintVec<F>);
+pub type ConstraintVec<F> = Vec<(usize, F)>;
