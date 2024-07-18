@@ -1,6 +1,6 @@
 [package]
 name = "ark-circom"
-version = "0.1.0"
+version = "0.5.0-alpha"
 edition = "2018"
 description = "Arkworks bindings to Circom's R1CS, for Groth16 Proof and Witness generation in Rust"
 license = "MIT OR Apache-2.0"
