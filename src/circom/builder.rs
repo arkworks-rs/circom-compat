@@ -1,6 +1,7 @@
-use ark_ec::pairing::Pairing;
 use std::{fs::File, path::Path};
 use wasmer::Store;
+
+use ark_ff::PrimeField;
 
 use super::{CircomCircuit, R1CS};
 
@@ -14,21 +15,21 @@ use crate::{
 use color_eyre::Result;
 
 #[derive(Debug)]
-pub struct CircomBuilder<E: Pairing> {
-    pub cfg: CircomConfig<E>,
+pub struct CircomBuilder<F: PrimeField> {
+    pub cfg: CircomConfig<F>,
     pub inputs: HashMap<String, Vec<BigInt>>,
 }
 
 // Add utils for creating this from files / directly from bytes
 #[derive(Debug)]
-pub struct CircomConfig<E: Pairing> {
-    pub r1cs: R1CS<E>,
+pub struct CircomConfig<F: PrimeField> {
+    pub r1cs: R1CS<F>,
     pub wtns: WitnessCalculator,
     pub store: Store,
     pub sanity_check: bool,
 }
 
-impl<E: Pairing> CircomConfig<E> {
+impl<F: PrimeField> CircomConfig<F> {
     pub fn new(wtns: impl AsRef<Path>, r1cs: impl AsRef<Path>) -> Result<Self> {
         let mut store = Store::default();
         let wtns = WitnessCalculator::new(&mut store, wtns).unwrap();
@@ -56,10 +57,10 @@ impl<E: Pairing> CircomConfig<E> {
     }
 }
 
-impl<E: Pairing> CircomBuilder<E> {
+impl<F: PrimeField> CircomBuilder<F> {
     /// Instantiates a new builder using the provided WitnessGenerator and R1CS files
     /// for your circuit
-    pub fn new(cfg: CircomConfig<E>) -> Self {
+    pub fn new(cfg: CircomConfig<F>) -> Self {
         Self {
             cfg,
             inputs: HashMap::new(),
@@ -74,7 +75,7 @@ impl<E: Pairing> CircomBuilder<E> {
 
     /// Generates an empty circom circuit with no witness set, to be used for
     /// generation of the trusted setup parameters
-    pub fn setup(&self) -> CircomCircuit<E> {
+    pub fn setup(&self) -> CircomCircuit<F> {
         let mut circom = CircomCircuit {
             r1cs: self.cfg.r1cs.clone(),
             witness: None,
@@ -88,11 +89,11 @@ impl<E: Pairing> CircomBuilder<E> {
 
     /// Creates the circuit populated with the witness corresponding to the previously
     /// provided inputs
-    pub fn build(mut self) -> Result<CircomCircuit<E>> {
+    pub fn build(mut self) -> Result<CircomCircuit<F>> {
         let mut circom = self.setup();
 
         // calculate the witness
-        let witness = self.cfg.wtns.calculate_witness_element::<E, _>(
+        let witness = self.cfg.wtns.calculate_witness_element::<F, _>(
             &mut self.cfg.store,
             self.inputs,
             self.cfg.sanity_check,
@@ -102,7 +103,7 @@ impl<E: Pairing> CircomBuilder<E> {
         // sanity check
         debug_assert!({
             use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem};
-            let cs = ConstraintSystem::<E::ScalarField>::new_ref();
+            let cs = ConstraintSystem::<F>::new_ref();
             circom.clone().generate_constraints(cs.clone()).unwrap();
             let is_satisfied = cs.is_satisfied().unwrap();
             if !is_satisfied {

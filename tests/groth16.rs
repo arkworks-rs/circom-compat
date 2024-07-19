@@ -10,7 +10,7 @@ type GrothBn = Groth16<Bn254>;
 
 #[tokio::test]
 async fn groth16_proof() -> Result<()> {
-    let cfg = CircomConfig::<Bn254>::new(
+    let cfg = CircomConfig::<Fr>::new(
         "./test-vectors/mycircuit_js/mycircuit.wasm",
         "./test-vectors/mycircuit.r1cs",
     )?;
@@ -41,7 +41,7 @@ async fn groth16_proof() -> Result<()> {
 
 #[tokio::test]
 async fn groth16_proof_wrong_input() -> Result<()> {
-    let cfg = CircomConfig::<Bn254>::new(
+    let cfg = CircomConfig::<Fr>::new(
         "./test-vectors/mycircuit_js/mycircuit.wasm",
         "./test-vectors/mycircuit.r1cs",
     )
@@ -74,7 +74,7 @@ async fn groth16_proof_wrong_input() -> Result<()> {
 
 #[tokio::test]
 async fn groth16_proof_circom() -> Result<()> {
-    let cfg = CircomConfig::<Bn254>::new(
+    let cfg = CircomConfig::<Fr>::new(
         "test-vectors/circuit2_js/circuit2.wasm",
         "test-vectors/circuit2.r1cs",
     )?;
@@ -105,7 +105,7 @@ async fn groth16_proof_circom() -> Result<()> {
 
 #[tokio::test]
 async fn witness_generation_circom() -> Result<()> {
-    let cfg = CircomConfig::<Bn254>::new(
+    let cfg = CircomConfig::<Fr>::new(
         "test-vectors/circuit2_js/circuit2.wasm",
         "test-vectors/circuit2.r1cs",
     )?;
