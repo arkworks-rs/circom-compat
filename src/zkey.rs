@@ -850,7 +850,7 @@ mod tests {
         let (params, _matrices) = read_zkey(&mut file).unwrap(); // binfile.proving_key().unwrap();
 
         let cfg = CircomConfig::<Fr>::new(
-            "./test-vectors/mycircuit.wasm",
+            "./test-vectors/mycircuit_js/mycircuit.wasm",
             "./test-vectors/mycircuit.r1cs",
         )
         .unwrap();
@@ -878,7 +878,9 @@ mod tests {
         let mut file = File::open(path).unwrap();
         let (params, matrices) = read_zkey(&mut file).unwrap();
         let mut store = Store::default();
-        let mut wtns = WitnessCalculator::new(&mut store, "./test-vectors/mycircuit.wasm").unwrap();
+        let mut wtns =
+            WitnessCalculator::new(&mut store, "./test-vectors/mycircuit_js/mycircuit.wasm")
+                .unwrap();
         let mut inputs: HashMap<String, Vec<num_bigint::BigInt>> = HashMap::new();
         let values = inputs.entry("a".to_string()).or_insert_with(Vec::new);
         values.push(3.into());
