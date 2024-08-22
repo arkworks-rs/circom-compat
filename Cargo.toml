@@ -6,14 +6,15 @@ description = "Arkworks bindings to Circom's R1CS, for Groth16 Proof and Witness
 homepage = "https://arkworks.rs"
 repository = "https://github.com/arkworks-rs/circom-compat"
 license = "MIT OR Apache-2.0"
+resolver = "2"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # WASM operations
-wasmer = "4.3.0"
-wasmer-wasix = { version = "0.20.0" }
+wasmer = { version = "4.3.0", default-features = false }
+wasmer-wasix = { version = "0.20.0", default-features = false }
 fnv = { version = "=1.0.7", default-features = false }
 num = { version = "=0.4.0" }
 num-traits = { version = "=0.2.15", default-features = false }
@@ -55,7 +56,7 @@ name = "groth16"
 harness = false
 
 [features]
-default = ["wasmer/default", "ethereum"]
-wasm = ["wasmer/js-default"]
+default = ["wasmer/default", "ethereum", "wasmer-wasix/default"]
+wasm = ["wasmer/js-default", "wasmer-wasix/js"]
 bench-complex-all = []
 ethereum = ["ethers-core"]
