@@ -50,3 +50,18 @@ jobs:
         run: cargo fmt --all -- --check
       - name: cargo clippy
         run: cargo clippy -- -D warnings
+
+  wasm32-wasip1-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          target: wasm32-wasip1
+      - name: Check wasm32-wasip compilation
+        run: cargo check --target wasm32-wasip1 --no-default-features --features="wasm"
