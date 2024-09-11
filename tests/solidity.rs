@@ -17,7 +17,7 @@ use std::{convert::TryFrom, sync::Arc};
 #[tokio::test]
 async fn solidity_verifier() -> Result<()> {
     let cfg = CircomConfig::<Fr>::new(
-        "./test-vectors/mycircuit.wasm",
+        "./test-vectors/mycircuit_js/mycircuit.wasm",
         "./test-vectors/mycircuit.r1cs",
     )?;
     let mut builder = CircomBuilder::new(cfg);
