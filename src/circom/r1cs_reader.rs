@@ -1,11 +1,11 @@
 //! R1CS circom file reader
 //! Copied from <https://github.com/poma/zkutil>
 //! Spec: <https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md>
+use ark_ff::PrimeField;
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::io::{Error, ErrorKind};
 
-use ark_ec::pairing::Pairing;
-use ark_serialize::{CanonicalDeserialize, SerializationError, SerializationError::IoError};
+use ark_serialize::{SerializationError, SerializationError::IoError};
 use ark_std::io::{Read, Seek, SeekFrom};
 
 use std::collections::HashMap;
@@ -15,16 +15,16 @@ type IoResult<T> = Result<T, SerializationError>;
 use super::{ConstraintVec, Constraints};
 
 #[derive(Clone, Debug)]
-pub struct R1CS<E: Pairing> {
+pub struct R1CS<F> {
     pub num_inputs: usize,
     pub num_aux: usize,
     pub num_variables: usize,
-    pub constraints: Vec<Constraints<E>>,
+    pub constraints: Vec<Constraints<F>>,
     pub wire_mapping: Option<Vec<usize>>,
 }
 
-impl<E: Pairing> From<R1CSFile<E>> for R1CS<E> {
-    fn from(file: R1CSFile<E>) -> Self {
+impl<F: PrimeField> From<R1CSFile<F>> for R1CS<F> {
+    fn from(file: R1CSFile<F>) -> Self {
         let num_inputs = (1 + file.header.n_pub_in + file.header.n_pub_out) as usize;
         let num_variables = file.header.n_wires as usize;
         let num_aux = num_variables - num_inputs;
@@ -38,20 +38,20 @@ impl<E: Pairing> From<R1CSFile<E>> for R1CS<E> {
     }
 }
 
-pub struct R1CSFile<E: Pairing> {
+pub struct R1CSFile<F: PrimeField> {
     pub version: u32,
     pub header: Header,
-    pub constraints: Vec<Constraints<E>>,
+    pub constraints: Vec<Constraints<F>>,
     pub wire_mapping: Vec<u64>,
 }
 
-impl<E: Pairing> R1CSFile<E> {
+impl<F: PrimeField> R1CSFile<F> {
     /// reader must implement the Seek trait, for example with a Cursor
     ///
     /// ```rust,ignore
     /// let reader = BufReader::new(Cursor::new(&data[..]));
     /// ```
-    pub fn new<R: Read + Seek>(mut reader: R) -> IoResult<R1CSFile<E>> {
+    pub fn new<R: Read + Seek>(mut reader: R) -> IoResult<R1CSFile<F>> {
         let mut magic = [0u8; 4];
         reader.read_exact(&mut magic)?;
         if magic != [0x72, 0x31, 0x63, 0x73] {
@@ -117,7 +117,7 @@ impl<E: Pairing> R1CSFile<E> {
 
         reader.seek(SeekFrom::Start(*constraint_offset?))?;
 
-        let constraints = read_constraints::<&mut R, E>(&mut reader, &header)?;
+        let constraints = read_constraints::<&mut R, F>(&mut reader, &header)?;
 
         let wire2label_offset = sec_offsets.get(&wire2label_type).ok_or_else(|| {
             Error::new(
@@ -200,29 +200,29 @@ impl Header {
     }
 }
 
-fn read_constraint_vec<R: Read, E: Pairing>(mut reader: R) -> IoResult<ConstraintVec<E>> {
+fn read_constraint_vec<R: Read, F: PrimeField>(mut reader: R) -> IoResult<ConstraintVec<F>> {
     let n_vec = reader.read_u32::<LittleEndian>()? as usize;
     let mut vec = Vec::with_capacity(n_vec);
     for _ in 0..n_vec {
         vec.push((
             reader.read_u32::<LittleEndian>()? as usize,
-            E::ScalarField::deserialize_uncompressed(&mut reader)?,
+            F::deserialize_uncompressed(&mut reader)?,
         ));
     }
     Ok(vec)
 }
 
-fn read_constraints<R: Read, E: Pairing>(
+fn read_constraints<R: Read, F: PrimeField>(
     mut reader: R,
     header: &Header,
-) -> IoResult<Vec<Constraints<E>>> {
+) -> IoResult<Vec<Constraints<F>>> {
     // todo check section size
     let mut vec = Vec::with_capacity(header.n_constraints as usize);
     for _ in 0..header.n_constraints {
         vec.push((
-            read_constraint_vec::<&mut R, E>(&mut reader)?,
-            read_constraint_vec::<&mut R, E>(&mut reader)?,
-            read_constraint_vec::<&mut R, E>(&mut reader)?,
+            read_constraint_vec::<&mut R, F>(&mut reader)?,
+            read_constraint_vec::<&mut R, F>(&mut reader)?,
+            read_constraint_vec::<&mut R, F>(&mut reader)?,
         ));
     }
     Ok(vec)
@@ -251,7 +251,7 @@ fn read_map<R: Read>(mut reader: R, size: u64, header: &Header) -> IoResult<Vec<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_bn254::{Bn254, Fr};
+    use ark_bn254::Fr;
     use ark_std::io::{BufReader, Cursor};
 
     #[test]
@@ -309,7 +309,7 @@ mod tests {
         );
 
         let reader = BufReader::new(Cursor::new(&data[..]));
-        let file = R1CSFile::<Bn254>::new(reader).unwrap();
+        let file = R1CSFile::<Fr>::new(reader).unwrap();
         assert_eq!(file.version, 1);
 
         assert_eq!(file.header.field_size, 32);

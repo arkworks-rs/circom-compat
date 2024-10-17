@@ -2,15 +2,15 @@ use ark_circom::{CircomBuilder, CircomConfig};
 use ark_std::rand::thread_rng;
 use color_eyre::Result;
 
-use ark_bn254::Bn254;
+use ark_bn254::{Bn254, Fr};
 use ark_crypto_primitives::snark::SNARK;
 use ark_groth16::Groth16;
 
 type GrothBn = Groth16<Bn254>;
 
-#[test]
-fn groth16_proof() -> Result<()> {
-    let cfg = CircomConfig::<Bn254>::new(
+#[tokio::test]
+async fn groth16_proof() -> Result<()> {
+    let cfg = CircomConfig::<Fr>::new(
         "./test-vectors/mycircuit.wasm",
         "./test-vectors/mycircuit.r1cs",
     )?;
@@ -39,9 +39,9 @@ fn groth16_proof() -> Result<()> {
     Ok(())
 }
 
-#[test]
-fn groth16_proof_wrong_input() {
-    let cfg = CircomConfig::<Bn254>::new(
+#[tokio::test]
+async fn groth16_proof_wrong_input() {
+    let cfg = CircomConfig::<Fr>::new(
         "./test-vectors/mycircuit.wasm",
         "./test-vectors/mycircuit.r1cs",
     )
@@ -60,10 +60,10 @@ fn groth16_proof_wrong_input() {
     let _ = builder.build().unwrap_err();
 }
 
-#[test]
+#[tokio::test]
 #[cfg(feature = "circom-2")]
-fn groth16_proof_circom2() -> Result<()> {
-    let cfg = CircomConfig::<Bn254>::new(
+async fn groth16_proof_circom2() -> Result<()> {
+    let cfg = CircomConfig::<Fr>::new(
         "./test-vectors/circom2_multiplier2.wasm",
         "./test-vectors/circom2_multiplier2.r1cs",
     )?;
@@ -92,10 +92,10 @@ fn groth16_proof_circom2() -> Result<()> {
     Ok(())
 }
 
-#[test]
+#[tokio::test]
 #[cfg(feature = "circom-2")]
-fn witness_generation_circom2() -> Result<()> {
-    let cfg = CircomConfig::<Bn254>::new(
+async fn witness_generation_circom2() -> Result<()> {
+    let cfg = CircomConfig::<Fr>::new(
         "./test-vectors/circom2_multiplier2.wasm",
         "./test-vectors/circom2_multiplier2.r1cs",
     )?;
