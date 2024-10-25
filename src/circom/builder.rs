@@ -1,13 +1,9 @@
-use std::{fs::File, io::BufReader, path::Path};
+use ark_ff::PrimeField;
+use num_bigint::BigInt;
+use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 use wasmer::Store;
 
-use ark_ff::PrimeField;
-use ark_ec::pairing::Pairing;
-
 use super::{CircomCircuit, R1CS};
-
-use num_bigint::BigInt;
-use std::collections::HashMap;
 
 use crate::{
     circom::R1CSFile,
