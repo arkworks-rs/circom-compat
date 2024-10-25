@@ -5,12 +5,13 @@ mod memory;
 pub(super) use memory::SafeMemory;
 
 mod circom;
-pub(super) use circom::{CircomBase, Wasm};
+pub(super) use circom::CircomBase;
+pub use circom::Wasm;
 
 #[cfg(feature = "circom-2")]
 pub(super) use circom::Circom2;
 
-pub(super) use circom::Circom;
+pub(super) use circom::Circom1;
 
 use fnv::FnvHasher;
 use std::hash::Hasher;
