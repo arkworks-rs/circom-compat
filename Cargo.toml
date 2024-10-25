@@ -10,8 +10,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # WASM operations
-wasmer = "4.3.7"
-wasmer-wasix = { version = "0.27.0" }
+wasmer = "4.4.0"
+wasmer-wasix = { version = "0.28.0" }
 fnv = { version = "1.0.7", default-features = false }
 num = { version = "0.4.3" }
 num-traits = { version = "0.2.16", default-features = false }
@@ -39,12 +39,12 @@ ethers-core = { version = "2.0.7", default-features = false, optional = true }
 # error handling
 thiserror = "1.0.39"
 color-eyre = "0.6.2"
-criterion = "0.3.6"
 
 cfg-if = "1.0.0"
 
 [dev-dependencies]
-hex-literal = "0.2.2"
+criterion = "0.5.1"
+hex-literal = "0.4.1"
 tokio = { version = "1.29.1", features = ["macros"] }
 serde_json = "1.0.94"
 ethers = "2.0.7"
