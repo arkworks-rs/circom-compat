@@ -13,7 +13,7 @@ Clone the repository and run `cd ark-circom/ && cargo doc --open`
 ```toml
 [dependencies]
 
-ark-circom = { git = "https://github.com/gakonst/ark-circom.git" }
+ark-circom = "0.5.0"
 ```
 
 ## Example
