@@ -1,12 +1,9 @@
-use std::{fs::File, path::Path};
+use ark_ff::PrimeField;
+use num_bigint::BigInt;
+use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 use wasmer::Store;
 
-use ark_ff::PrimeField;
-
 use super::{CircomCircuit, R1CS};
-
-use num_bigint::BigInt;
-use std::collections::HashMap;
 
 use crate::{
     circom::R1CSFile,
@@ -33,7 +30,7 @@ impl<F: PrimeField> CircomConfig<F> {
     pub fn new(wtns: impl AsRef<Path>, r1cs: impl AsRef<Path>) -> Result<Self> {
         let mut store = Store::default();
         let wtns = WitnessCalculator::new(&mut store, wtns).unwrap();
-        let reader = File::open(r1cs)?;
+        let reader = BufReader::new(File::open(r1cs)?);
         let r1cs = R1CSFile::new(reader)?.into();
         Ok(Self {
             wtns,
