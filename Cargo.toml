@@ -39,7 +39,7 @@ thiserror = "1.0.39"
 color-eyre = "0.6.2"
 
 # ethereum compat
-ruint = { version = "1.12.3", default-features = false ,optional = true, features=["ark-ff-04"] }
+ruint = { version = "1.12.3", default-features = false ,optional = true, features=["alloc", "ark-ff-04"] }
 
 cfg-if = "1.0.0"
 
