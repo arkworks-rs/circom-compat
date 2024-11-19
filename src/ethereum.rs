@@ -1,11 +1,11 @@
 //! Helpers for converting Arkworks types to U256-tuples as expected by the
 //! Solidity Groth16 Verifier smart contracts
 use ark_ff::{BigInteger, PrimeField};
-use ethers_core::types::U256;
 use num_traits::Zero;
 
 use ark_bn254::{Bn254, Fq, Fq2, Fr, G1Affine, G2Affine};
 use ark_serialize::CanonicalDeserialize;
+use ruint::aliases::U256;
 
 pub struct Inputs(pub Vec<U256>);
 
@@ -174,8 +174,7 @@ impl From<VerifyingKey> for ark_groth16::VerifyingKey<Bn254> {
 
 // Helper for converting a PrimeField to its U256 representation for Ethereum compatibility
 fn u256_to_point<F: PrimeField>(point: U256) -> F {
-    let mut buf = [0; 32];
-    point.to_little_endian(&mut buf);
+    let buf: [u8; 32] = point.to_le_bytes();
     let bigint = F::BigInt::deserialize_uncompressed(&buf[..]).expect("always works");
     F::from_bigint(bigint).expect("always works")
 }
@@ -185,7 +184,7 @@ fn u256_to_point<F: PrimeField>(point: U256) -> F {
 fn point_to_u256<F: PrimeField>(point: F) -> U256 {
     let point = point.into_bigint();
     let point_bytes = point.to_bytes_be();
-    U256::from(&point_bytes[..])
+    U256::try_from_be_slice(&point_bytes[..]).expect("always works")
 }
 
 #[cfg(test)]
