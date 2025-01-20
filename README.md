@@ -54,6 +54,7 @@ assert!(verified);
 ## Running the tests
 
 Tests require the following installed:
+
 1. [`solc`](https://solidity.readthedocs.io/en/latest/installing-solidity.html). We also recommend using [solc-select](https://github.com/crytic/solc-select) for more flexibility.
 2. [`ganache-cli`](https://github.com/trufflesuite/ganache-cli#installation)
 
@@ -68,6 +69,7 @@ Tests require the following installed:
 ## Acknowledgements
 
 This library would not have been possibly without the great work done in:
+
 - [`zkutil`](https://github.com/poma/zkutil/)
 - [`snarkjs`](https://github.com/iden3/snarkjs/)
 
