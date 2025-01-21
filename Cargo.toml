@@ -1,6 +1,6 @@
 [package]
 name = "ark-circom"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Arkworks bindings to Circom's R1CS, for Groth16 Proof and Witness generation in Rust"
 license = "MIT OR Apache-2.0"
@@ -35,20 +35,20 @@ byteorder = "1.4.3"
 
 
 # error handling
-thiserror = "1.0.39"
+thiserror = "1"
 color-eyre = "0.6.2"
 
 # ethereum compat
-ruint = { version = "1.12.3", default-features = false ,optional = true, features=["alloc", "ark-ff-04"] }
+ruint = { version = "1.12", default-features = false ,optional = true, features=["alloc", "ark-ff-04"] }
 
 cfg-if = "1.0.0"
 
 [dev-dependencies]
 criterion = "0.5.1"
 hex-literal = "0.4.1"
-tokio = { version = "1.29.1", features = ["macros"] }
-serde_json = "1.0.94"
-alloy = { version = "0.6.4", default-features = false, features = ["contract", "node-bindings"] }
+tokio = { version = "1", features = ["macros"] }
+serde_json = "1"
+alloy = { version = "0.9", default-features = false, features = ["contract", "node-bindings"] }
 
 [[bench]]
 name = "groth16"
@@ -60,3 +60,6 @@ wasm = ["wasmer/js-default"]
 bench-complex-all = []
 circom-2 = []
 ethereum = ["ruint"]
+# This features does nothing but the ark_std::cfg_into_iter expectes it
+parallel = []
+
