@@ -2,7 +2,7 @@
 
 Arkworks bindings to Circom's R1CS, for Groth16 Proof and Witness generation in Rust.
 
-![Github Actions](https://github.com/gakonst/ark-circom/workflows/Tests/badge.svg)
+![Github Actions](https://github.com/arkworks-rs/circom-compat/workflows/Tests/badge.svg)
 
 ## Documentation
 
@@ -13,7 +13,7 @@ Clone the repository and run `cd ark-circom/ && cargo doc --open`
 ```toml
 [dependencies]
 
-ark-circom = { git = "https://github.com/gakonst/ark-circom.git" }
+ark-circom = { git = "https://github.com/arkworks-rs/ark-circom.git" }
 ```
 
 ## Example
@@ -55,8 +55,7 @@ assert!(verified);
 
 Tests require the following installed:
 
-1. [`solc`](https://solidity.readthedocs.io/en/latest/installing-solidity.html). We also recommend using [solc-select](https://github.com/crytic/solc-select) for more flexibility.
-2. [`ganache-cli`](https://github.com/trufflesuite/ganache-cli#installation)
+1. [`anvil`](https://book.getfoundry.sh/getting-started/installation).
 
 ## Features
 

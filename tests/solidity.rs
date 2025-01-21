@@ -1,3 +1,4 @@
+use alloy::{providers::ProviderBuilder, sol};
 use ark_circom::{ethereum, CircomBuilder, CircomConfig};
 use ark_std::rand::thread_rng;
 use color_eyre::Result;
@@ -6,13 +7,9 @@ use ark_bn254::{Bn254, Fr};
 use ark_crypto_primitives::snark::SNARK;
 use ark_groth16::Groth16;
 
-use ethers::{
-    contract::ContractError,
-    prelude::abigen,
-    providers::{Http, Middleware, Provider},
-    utils::Anvil,
-};
-use std::{convert::TryFrom, sync::Arc};
+use ruint::aliases::U256;
+use Pairing::{G1Point, G2Point};
+use Verifier::{Proof, VerifyingKey};
 
 #[tokio::test]
 async fn solidity_verifier() -> Result<()> {
@@ -36,21 +33,18 @@ async fn solidity_verifier() -> Result<()> {
     let proof = Groth16::<Bn254>::prove(&params, circom, &mut rng)?;
 
     // launch the network & compile the verifier
-    let anvil = Anvil::new().spawn();
-    let acc = anvil.addresses()[0];
-    let provider = Provider::<Http>::try_from(anvil.endpoint())?;
-    let provider = provider.with_sender(acc);
-    let provider = Arc::new(provider);
+    let provider = ProviderBuilder::new()
+        .with_recommended_fillers()
+        .on_anvil_with_wallet();
 
     // deploy the verifier
-    let contract = Groth16Verifier::deploy(provider.clone(), ())?
-        .send()
-        .await?;
+    let contract = Groth16Verifier::deploy(provider).await?;
 
     // check the proof
-    let verified = contract
-        .check_proof(proof, params.vk, inputs.as_slice())
-        .await?;
+    let inputs: Vec<U256> = inputs.into_iter().map(|i| i.into()).collect();
+    let proof: Proof = ethereum::Proof::from(proof).into();
+    let vk: VerifyingKey = ethereum::VerifyingKey::from(params.vk).into();
+    let verified = contract.verify(inputs, proof, vk).call().await?._0;
 
     assert!(verified);
 
@@ -60,10 +54,15 @@ async fn solidity_verifier() -> Result<()> {
 // We need to implement the conversion from the Ark-Circom's internal Ethereum types to
 // the ones expected by the abigen'd types. Could we maybe provide a convenience
 // macro for these, given that there's room for implementation error?
-abigen!(Groth16Verifier, "./tests/verifier_artifact.json");
+sol!(
+    #[sol(rpc)]
+    Groth16Verifier,
+    "./tests/verifier_artifact.json"
+);
+
 impl From<ethereum::G1> for G1Point {
     fn from(src: ethereum::G1) -> Self {
-        Self { x: src.x, y: src.y }
+        Self { X: src.x, Y: src.y }
     }
 }
 impl From<ethereum::G2> for G2Point {
@@ -71,49 +70,26 @@ impl From<ethereum::G2> for G2Point {
         // We should use the `.as_tuple()` method which handles converting
         // the G2 elements to have the second limb first
         let src = src.as_tuple();
-        Self { x: src.0, y: src.1 }
+        Self { X: src.0, Y: src.1 }
     }
 }
 impl From<ethereum::Proof> for Proof {
     fn from(src: ethereum::Proof) -> Self {
         Self {
-            a: src.a.into(),
-            b: src.b.into(),
-            c: src.c.into(),
+            A: src.a.into(),
+            B: src.b.into(),
+            C: src.c.into(),
         }
     }
 }
 impl From<ethereum::VerifyingKey> for VerifyingKey {
     fn from(src: ethereum::VerifyingKey) -> Self {
         Self {
-            alfa_1: src.alpha1.into(),
-            beta_2: src.beta2.into(),
-            gamma_2: src.gamma2.into(),
-            delta_2: src.delta2.into(),
-            ic: src.ic.into_iter().map(|i| i.into()).collect(),
+            alfa1: src.alpha1.into(),
+            beta2: src.beta2.into(),
+            gamma2: src.gamma2.into(),
+            delta2: src.delta2.into(),
+            IC: src.ic.into_iter().map(|i| i.into()).collect(),
         }
-    }
-}
-
-impl<M: Middleware> Groth16Verifier<M> {
-    async fn check_proof<
-        I: Into<ethereum::Inputs>,
-        P: Into<ethereum::Proof>,
-        VK: Into<ethereum::VerifyingKey>,
-    >(
-        &self,
-        proof: P,
-        vk: VK,
-        inputs: I,
-    ) -> Result<bool, ContractError<M>> {
-        // convert into the expected format by the contract
-        let proof = proof.into().into();
-        let vk = vk.into().into();
-        let inputs = inputs.into().0;
-
-        // query the contract
-        let res = self.verify(inputs, proof, vk).call().await?;
-
-        Ok(res)
     }
 }
