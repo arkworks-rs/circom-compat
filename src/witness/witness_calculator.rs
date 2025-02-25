@@ -1,4 +1,4 @@
-use super::{fnv, CircomBase, SafeMemory, Wasm};
+use super::{fnv, SafeMemory, Wasm};
 use ark_ff::PrimeField;
 use color_eyre::Result;
 use num_bigint::BigInt;
@@ -6,19 +6,13 @@ use num_traits::Zero;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
 use wasmer_wasix::WasiEnv;
 
-#[cfg(feature = "circom-2")]
 use num::ToPrimitive;
-
-use super::Circom1;
-#[cfg(feature = "circom-2")]
-use super::Circom2;
 
 #[derive(Debug)]
 pub struct WitnessCalculator {
     pub instance: Wasm,
     pub memory: Option<SafeMemory>,
     pub n64: u32,
-    pub circom_version: u32,
     pub prime: BigInt,
 }
 
@@ -28,7 +22,6 @@ pub struct WitnessCalculator {
 #[error("{0}")]
 struct ExitCode(u32);
 
-#[cfg(feature = "circom-2")]
 fn from_array32(arr: Vec<u32>) -> BigInt {
     let mut res = BigInt::zero();
     let radix = BigInt::from(0x100000000u64);
@@ -38,7 +31,6 @@ fn from_array32(arr: Vec<u32>) -> BigInt {
     res
 }
 
-#[cfg(feature = "circom-2")]
 fn to_array32(s: &BigInt, size: usize) -> Vec<u32> {
     let mut res = vec![0; size];
     let mut rem = s.clone();
@@ -96,78 +88,24 @@ impl WitnessCalculator {
         Ok(wasm)
     }
 
-    pub fn new_from_wasm(store: &mut Store, wasm: Wasm) -> Result<Self> {
-        let version = wasm.get_version(store).unwrap_or(1);
-        // Circom 2 feature flag with version 2
-        #[cfg(feature = "circom-2")]
-        fn new_circom2(
-            instance: Wasm,
-            store: &mut Store,
-            version: u32,
-        ) -> Result<WitnessCalculator> {
-            let n32 = instance.get_field_num_len32(store)?;
-            instance.get_raw_prime(store)?;
-            let mut arr = vec![0; n32 as usize];
-            for i in 0..n32 {
-                let res = instance.read_shared_rw_memory(store, i)?;
-                arr[(n32 as usize) - (i as usize) - 1] = res;
-            }
-            let prime = from_array32(arr);
-
-            let n64 = ((prime.bits() - 1) / 64 + 1) as u32;
-
-            Ok(WitnessCalculator {
-                instance,
-                memory: None,
-                n64,
-                circom_version: version,
-                prime,
-            })
+    pub fn new_from_wasm(store: &mut Store, instance: Wasm) -> Result<Self> {
+        let n32 = instance.get_field_num_len32(store)?;
+        instance.get_raw_prime(store)?;
+        let mut arr = vec![0; n32 as usize];
+        for i in 0..n32 {
+            let res = instance.read_shared_rw_memory(store, i)?;
+            arr[(n32 as usize) - (i as usize) - 1] = res;
         }
+        let prime = from_array32(arr);
 
-        fn new_circom1(
-            instance: Wasm,
-            store: &mut Store,
-            version: u32,
-        ) -> Result<WitnessCalculator> {
-            // Fallback to Circom 1 behavior
-            let n32 = (instance.get_fr_len(store)? >> 2) - 2;
-            let mut safe_memory =
-                SafeMemory::new(instance.memory.clone(), n32 as usize, BigInt::zero());
-            let ptr = instance.get_ptr_raw_prime(store)?;
-            let prime = safe_memory.read_big(store, ptr as usize, n32 as usize)?;
+        let n64 = ((prime.bits() - 1) / 64 + 1) as u32;
 
-            let n64 = ((prime.bits() - 1) / 64 + 1) as u32;
-            safe_memory.prime = prime.clone();
-
-            Ok(WitnessCalculator {
-                instance,
-                memory: Some(safe_memory),
-                n64,
-                circom_version: version,
-                prime,
-            })
-        }
-
-        // Three possibilities:
-        // a) Circom 2 feature flag enabled, WASM runtime version 2
-        // b) Circom 2 feature flag enabled, WASM runtime version 1
-        // c) Circom 1 default behavior
-        //
-        // Once Circom 2 support is more stable, feature flag can be removed
-
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "circom-2")] {
-                match version {
-                    2 => new_circom2(wasm, store, version),
-                    1 => new_circom1(wasm, store, version),
-
-                    _ => panic!("Unknown Circom version")
-                }
-            } else {
-                new_circom1(instance, memory, version)
-            }
-        }
+        Ok(WitnessCalculator {
+            instance,
+            memory: None,
+            n64,
+            prime,
+        })
     }
 
     pub fn calculate_witness<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
@@ -178,77 +116,6 @@ impl WitnessCalculator {
     ) -> Result<Vec<BigInt>> {
         self.instance.init(store, sanity_check)?;
 
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "circom-2")] {
-                match self.circom_version {
-                    2 => self.calculate_witness_circom2(store, inputs),
-                    1 => self.calculate_witness_circom1(store, inputs),
-                    _ => panic!("Unknown Circom version")
-                }
-            } else {
-                self.calculate_witness_circom1(inputs, sanity_check)
-            }
-        }
-    }
-
-    // Circom 1 default behavior
-    fn calculate_witness_circom1<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
-        &mut self,
-        store: &mut Store,
-        inputs: I,
-    ) -> Result<Vec<BigInt>> {
-        let old_mem_free_pos = self.memory.as_ref().unwrap().free_pos(store)?;
-        let p_sig_offset = self.memory.as_mut().unwrap().alloc_u32(store)?;
-        let p_fr = self.memory.as_mut().unwrap().alloc_fr(store)?;
-
-        // allocate the inputs
-        for (name, values) in inputs.into_iter() {
-            let (msb, lsb) = fnv(&name);
-
-            self.instance
-                .get_signal_offset32(store, p_sig_offset, 0, msb, lsb)?;
-
-            let sig_offset = self
-                .memory
-                .as_ref()
-                .unwrap()
-                .read_u32(store, p_sig_offset as usize)
-                .unwrap() as usize;
-
-            for (i, value) in values.into_iter().enumerate() {
-                self.memory
-                    .as_mut()
-                    .unwrap()
-                    .write_fr(store, p_fr as usize, &value)?;
-                self.instance
-                    .set_signal(store, 0, 0, (sig_offset + i) as u32, p_fr)?;
-            }
-        }
-
-        let mut w = Vec::new();
-
-        let n_vars = self.instance.get_n_vars(store)?;
-        for i in 0..n_vars {
-            let ptr = self.instance.get_ptr_witness(store, i)? as usize;
-            let el = self.memory.as_ref().unwrap().read_fr(store, ptr)?;
-            w.push(el);
-        }
-
-        self.memory
-            .as_mut()
-            .unwrap()
-            .set_free_pos(store, old_mem_free_pos)?;
-
-        Ok(w)
-    }
-
-    // Circom 2 feature flag with version 2
-    #[cfg(feature = "circom-2")]
-    fn calculate_witness_circom2<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
-        &mut self,
-        store: &mut Store,
-        inputs: I,
-    ) -> Result<Vec<BigInt>> {
         let n32 = self.instance.get_field_num_len32(store)?;
 
         // allocate the inputs
@@ -380,7 +247,6 @@ mod tests {
     struct TestCase<'a> {
         circuit_path: &'a str,
         inputs_path: &'a str,
-        n_vars: u32,
         n64: u32,
         witness: &'a [&'a str],
     }
@@ -394,9 +260,8 @@ mod tests {
     #[tokio::test]
     async fn multiplier_1() {
         run_test(TestCase {
-            circuit_path: root_path("test-vectors/mycircuit.wasm").as_str(),
+            circuit_path: root_path("test-vectors/mycircuit_js/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input1.json").as_str(),
-            n_vars: 4,
             n64: 4,
             witness: &["1", "33", "3", "11"],
         });
@@ -405,9 +270,8 @@ mod tests {
     #[tokio::test]
     async fn multiplier_2() {
         run_test(TestCase {
-            circuit_path: root_path("test-vectors/mycircuit.wasm").as_str(),
+            circuit_path: root_path("test-vectors/mycircuit_js/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input2.json").as_str(),
-            n_vars: 4,
             n64: 4,
             witness: &[
                 "1",
@@ -421,9 +285,8 @@ mod tests {
     #[tokio::test]
     async fn multiplier_3() {
         run_test(TestCase {
-            circuit_path: root_path("test-vectors/mycircuit.wasm").as_str(),
+            circuit_path: root_path("test-vectors/mycircuit_js/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input3.json").as_str(),
-            n_vars: 4,
             n64: 4,
             witness: &[
                 "1",
@@ -441,25 +304,8 @@ mod tests {
         let witness: Vec<String> = serde_json::from_str(&witness).unwrap();
         let witness = &witness.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
         run_test(TestCase {
-            circuit_path: root_path("test-vectors/circuit2.wasm").as_str(),
+            circuit_path: root_path("test-vectors/circuit2_js/circuit2.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input1.json").as_str(),
-            n_vars: 132, // 128 + 4
-            n64: 4,
-            witness,
-        });
-    }
-
-    #[tokio::test]
-    async fn smt_verifier() {
-        let witness =
-            std::fs::read_to_string(root_path("test-vectors/smtverifier10-witness.json")).unwrap();
-        let witness: Vec<String> = serde_json::from_str(&witness).unwrap();
-        let witness = &witness.iter().map(|x| x.as_ref()).collect::<Vec<_>>();
-
-        run_test(TestCase {
-            circuit_path: root_path("test-vectors/smtverifier10.wasm").as_str(),
-            inputs_path: root_path("test-vectors/smtverifier10-input.json").as_str(),
-            n_vars: 4794,
             n64: 4,
             witness,
         });
@@ -482,10 +328,6 @@ mod tests {
         assert_eq!(
             wtns.prime.to_str_radix(16),
             "30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001".to_lowercase()
-        );
-        assert_eq!(
-            { wtns.instance.get_n_vars(&mut store).unwrap() },
-            case.n_vars
         );
         assert_eq!({ wtns.n64 }, case.n64);
 

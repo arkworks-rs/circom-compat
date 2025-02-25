@@ -1,3 +1,5 @@
+pragma circom 2.0.0;
+
 template CheckBits(n) {
     signal input in;
     signal bits[n];
@@ -15,8 +17,8 @@ template CheckBits(n) {
 }
 
 template Multiplier(n) {
-    signal private input a;
-    signal private input b;
+    signal input a;
+    signal input b;
     signal output c;
     signal inva;
     signal invb;
