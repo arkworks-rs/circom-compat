@@ -1,6 +1,6 @@
 use ark_ff::PrimeField;
 use num_bigint::BigInt;
-use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
+use std::{collections::HashMap, fs::File, io::BufReader, path::Path, io::Cursor};
 use wasmer::Store;
 
 use super::{CircomCircuit, R1CS};
@@ -54,11 +54,13 @@ impl<F: PrimeField> CircomConfig<F> {
     }
 
     pub fn from_bytes(wtns: &[u8], r1cs: &[u8]) -> Result<Self> {
-        let wtns = WitnessCalculator::from_bytes(wtns).unwrap();
+        let mut store = Store::default();
+        let wtns = WitnessCalculator::from_bytes(&mut store, wtns).unwrap();
         let r1cs = R1CSFile::new(Cursor::new(r1cs))?.into();
         Ok(Self {
             wtns,
             r1cs,
+            store,
             sanity_check: false,
         })
     }

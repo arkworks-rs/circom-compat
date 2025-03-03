@@ -50,7 +50,7 @@ impl WitnessCalculator {
         Self::from_file(store, path)
     }
 
-    pub fn from_file(store: &mut Store, path: impl AsRef<std::path::Path>) -> Result<Self> {
+    pub fn from_bytes(store: &mut Store, bytes: &[u8]) -> Result<Self> {
         let module = Module::new(&store, bytes)?;
         Self::from_module(store, module)
     }
