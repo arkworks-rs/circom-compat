@@ -864,7 +864,6 @@ mod tests {
         let pvk = Groth16::<Bn254>::process_vk(&params.vk).unwrap();
 
         let verified = Groth16::<Bn254>::verify_with_processed_vk(&pvk, &inputs, &proof).unwrap();
-
         assert!(verified);
     }
 
