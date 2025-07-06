@@ -80,9 +80,7 @@ impl WitnessCalculator {
             }
         };
         let instance = Instance::new(store, &module, &import_object)?;
-        let exports = instance.exports.clone();
-        let wasm = Wasm::new(exports, memory);
-        Ok(wasm)
+        Ok(Wasm::new(instance))
     }
 
     pub fn new_from_wasm(store: &mut Store, instance: Wasm) -> Result<Self> {
