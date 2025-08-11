@@ -77,7 +77,7 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for CircomCircuit<F> {
             .map(|(a, b, c)| (make_lc(a), make_lc(b), make_lc(c)))
             .collect::<Vec<_>>();
         for (a, b, c) in constraints {
-            cs.enforce_r1cs_constraint(||a, ||b, ||c)?;
+            cs.enforce_r1cs_constraint(|| a, || b, || c)?;
         }
 
         Ok(())

@@ -1,5 +1,3 @@
-//TODO: This file is temporary and should be deleted.
-
 use ark_ff::Field;
 use ark_relations::utils::matrix::Matrix;
 
