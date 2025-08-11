@@ -1,5 +1,5 @@
 use ark_ff::PrimeField;
-use ark_groth16::r1cs_to_qap::{evaluate_constraint, LibsnarkReduction, R1CSToQAP};
+use ark_groth16::r1cs_to_qap::{LibsnarkReduction, R1CSToQAP, evaluate_constraint};
 use ark_poly::EvaluationDomain;
 use ark_relations::gr1cs::ConstraintSystemRef;
 use ark_relations::gr1cs::SynthesisError;

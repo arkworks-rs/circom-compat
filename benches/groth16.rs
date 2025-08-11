@@ -1,7 +1,7 @@
 use ark_crypto_primitives::snark::SNARK;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
-use ark_circom::{read_zkey, CircomReduction, WitnessCalculator};
+use ark_circom::{CircomReduction, WitnessCalculator, read_zkey};
 use ark_std::rand::thread_rng;
 
 use ark_bn254::{Bn254, Fr};

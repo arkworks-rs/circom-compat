@@ -1,9 +1,9 @@
-use super::{fnv, SafeMemory, Wasm};
+use super::{SafeMemory, Wasm, fnv};
 use ark_ff::PrimeField;
 use color_eyre::Result;
 use num_bigint::BigInt;
 use num_traits::Zero;
-use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
+use wasmer::{Function, Instance, Memory, MemoryType, Module, RuntimeError, Store, imports};
 use wasmer_wasix::WasiEnv;
 
 use num::ToPrimitive;

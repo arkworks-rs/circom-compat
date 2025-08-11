@@ -1,5 +1,5 @@
 pub mod r1cs_reader;
-pub use r1cs_reader::{R1CSFile, R1CS};
+pub use r1cs_reader::{R1CS, R1CSFile};
 
 mod circuit;
 pub use circuit::CircomCircuit;
