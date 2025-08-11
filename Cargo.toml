@@ -23,7 +23,7 @@ num-bigint = { version = "0.4.3", default-features = false, features = [
 ] }
 
 # ZKP Generation
-ark-crypto-primitives = { git = "https://github.com/alireza-shirzad/crypto-primitives.git" }
+ark-crypto-primitives = { git = "https://github.com/arkworks-rs/crypto-primitives.git" }
 ark-ff = { version = "0.5.0", default-features = false, features = [
     "parallel",
     "asm",
@@ -35,7 +35,7 @@ ark-std = { version = "0.5.0", default-features = false, features = [
     "parallel",
 ] }
 ark-bn254 = { version = "0.5.0" }
-ark-groth16 = { git = "https://github.com/alireza-shirzad/groth16.git", default-features = false, features = [
+ark-groth16 = { git = "https://github.com/arkworks-rs/groth16.git", default-features = false, features = [
     "parallel",
 ] }
 ark-poly = { version = "0.5.0", default-features = false, features = [
@@ -79,3 +79,20 @@ default = ["wasmer/default", "ethereum", "wasmer-wasix/default"]
 wasm = ["wasmer/js-default", "wasmer-wasix/js"]
 bench-complex-all = []
 ethereum = ["ethers-core"]
+
+
+
+[patch.crates-io]
+ark-relations = { git = "https://github.com/arkworks-rs/snark.git" }
+ark-crypto-primitives = { git = "https://github.com/arkworks-rs/crypto-primitives.git" }
+ark-ff = { git = "https://github.com/arkworks-rs/algebra.git" }
+ark-ec = { git = "https://github.com/arkworks-rs/algebra.git" }
+ark-poly = { git = "https://github.com/arkworks-rs/algebra.git" }
+ark-serialize = { git = "https://github.com/arkworks-rs/algebra.git" }
+ark-bls12-381 = { git = "https://github.com/arkworks-rs/algebra.git" }
+ark-bls12-377 = { git = "https://github.com/arkworks-rs/algebra.git" }
+ark-bn254 = { git = "https://github.com/arkworks-rs/algebra.git" }
+ark-bw6-761 = { git = "https://github.com/arkworks-rs/algebra.git" }
+ark-mnt4-298 = { git = "https://github.com/arkworks-rs/algebra.git" }
+ark-r1cs-std = { git = "https://github.com/arkworks-rs/r1cs-std.git" }
+ark-groth16 = { git = "https://github.com/arkworks-rs/groth16.git" }

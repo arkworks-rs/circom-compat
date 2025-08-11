@@ -58,9 +58,9 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for CircomCircuit<F> {
 
         let make_index = |index| {
             if index < self.r1cs.num_inputs {
-                Variable::Instance(index)
+                Variable::instance(index)
             } else {
-                Variable::Witness(index - self.r1cs.num_inputs)
+                Variable::witness(index - self.r1cs.num_inputs)
             }
         };
         let make_lc = |lc_data: &[(usize, F)]| {
