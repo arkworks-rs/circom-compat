@@ -33,7 +33,7 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for CircomCircuit<F> {
 
         // Start from 1 because Arkworks implicitly allocates One for the first input
         for i in 1..self.r1cs.num_inputs {
-            cs.new_input_variable(|| {
+            let _ = cs.new_input_variable(|| {
                 Ok(match witness {
                     None => F::ONE,
                     Some(w) => match wire_mapping {
@@ -45,7 +45,7 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for CircomCircuit<F> {
         }
 
         for i in 0..self.r1cs.num_aux {
-            cs.new_witness_variable(|| {
+            let _ = cs.new_witness_variable(|| {
                 Ok(match witness {
                     None => F::ONE,
                     Some(w) => match wire_mapping {
