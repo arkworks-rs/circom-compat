@@ -15,6 +15,10 @@ crate-type = ["cdylib", "rlib"]
 # WASM operations
 wasmer = { version = "6.1.0-rc.2", default-features = false }
 wasmer-wasix = { version = "=0.601.0-rc.2", default-features = false }
+# Hack until new version of `wasmer` releases.
+socket2 = { version = "0.5.7", features = ["all"] }
+
+
 fnv = { version = "1.0.7", default-features = false }
 num = { version = "0.4.3" }
 num-traits = { version = "0.2.16", default-features = false }
