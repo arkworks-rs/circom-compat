@@ -49,11 +49,7 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
     let r = ark_bn254::Fr::rand(rng);
     let s = ark_bn254::Fr::rand(rng);
 
-    let matrices = [
-        matrices.a,
-        matrices.b,
-        matrices.c,
-    ];
+    let matrices = [matrices.a, matrices.b, matrices.c];
     let proof = Groth16::<Bn254, CircomReduction>::create_proof_with_reduction_and_matrices(
         &params,
         r,
