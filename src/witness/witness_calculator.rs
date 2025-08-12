@@ -83,7 +83,8 @@ impl WitnessCalculator {
         let instance = Instance::new(store, &module, &import_object)?;
         let exports = instance.exports.clone();
         let mut wasi_env = WasiEnv::builder("calculateWitness").finalize(store)?;
-        wasi_env.initialize_with_memory(store, instance, Some(memory.clone()), false)?;
+        wasi_env.initialize(store, instance)?;
+        // wasi_env.initialize_with_memory(store, instance, Some(memory.clone()), false)?;
         let wasm = Wasm::new(exports, memory);
         Ok(wasm)
     }

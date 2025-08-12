@@ -13,8 +13,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # WASM operations
-wasmer = { version = "=4.4.0", default-features = false }
-wasmer-wasix = { version = "=0.28.0", default-features = false }
+wasmer = { version = "6.1.0-rc.2", default-features = false }
+wasmer-wasix = { version = "=0.601.0-rc.2", default-features = false }
 fnv = { version = "1.0.7", default-features = false }
 num = { version = "0.4.3" }
 num-traits = { version = "0.2.16", default-features = false }
