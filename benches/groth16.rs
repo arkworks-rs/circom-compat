@@ -1,8 +1,8 @@
 use ark_crypto_primitives::snark::SNARK;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 
-use ark_circom::{read_zkey, CircomReduction, WitnessCalculator};
-use ark_std::rand::thread_rng;
+use ark_circom::{CircomReduction, WitnessCalculator, read_zkey};
+use ark_std::{hint::black_box, rand::thread_rng};
 
 use ark_bn254::{Bn254, Fr};
 use ark_groth16::Groth16;
@@ -49,6 +49,7 @@ fn bench_groth(c: &mut Criterion, num_validators: u32, num_constraints: u32) {
     let r = ark_bn254::Fr::rand(rng);
     let s = ark_bn254::Fr::rand(rng);
 
+    let matrices = [matrices.a, matrices.b, matrices.c];
     let proof = Groth16::<Bn254, CircomReduction>::create_proof_with_reduction_and_matrices(
         &params,
         r,

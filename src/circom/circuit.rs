@@ -1,12 +1,12 @@
-use ark_relations::r1cs::{
+use ark_ff::PrimeField;
+use ark_relations::gr1cs::{
     ConstraintSynthesizer, ConstraintSystemRef, LinearCombination, SynthesisError, Variable,
 };
 
-use ark_ff::PrimeField;
+use color_eyre::Result;
+use rayon::prelude::*;
 
 use super::R1CS;
-
-use color_eyre::Result;
 
 #[derive(Clone, Debug)]
 pub struct CircomCircuit<F: PrimeField> {
@@ -33,9 +33,9 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for CircomCircuit<F> {
 
         // Start from 1 because Arkworks implicitly allocates One for the first input
         for i in 1..self.r1cs.num_inputs {
-            cs.new_input_variable(|| {
+            let _ = cs.new_input_variable(|| {
                 Ok(match witness {
-                    None => F::from(1u32),
+                    None => F::ONE,
                     Some(w) => match wire_mapping {
                         Some(m) => w[m[i]],
                         None => w[i],
@@ -45,9 +45,9 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for CircomCircuit<F> {
         }
 
         for i in 0..self.r1cs.num_aux {
-            cs.new_witness_variable(|| {
+            let _ = cs.new_witness_variable(|| {
                 Ok(match witness {
-                    None => F::from(1u32),
+                    None => F::ONE,
                     Some(w) => match wire_mapping {
                         Some(m) => w[m[i + self.r1cs.num_inputs]],
                         None => w[i + self.r1cs.num_inputs],
@@ -58,24 +58,26 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for CircomCircuit<F> {
 
         let make_index = |index| {
             if index < self.r1cs.num_inputs {
-                Variable::Instance(index)
+                Variable::instance(index)
             } else {
-                Variable::Witness(index - self.r1cs.num_inputs)
+                Variable::witness(index - self.r1cs.num_inputs)
             }
         };
         let make_lc = |lc_data: &[(usize, F)]| {
-            lc_data.iter().fold(
-                LinearCombination::<F>::zero(),
-                |lc: LinearCombination<F>, (index, coeff)| lc + (*coeff, make_index(*index)),
-            )
+            let lc = lc_data
+                .iter()
+                .map(|(index, coeff)| (*coeff, make_index(*index)))
+                .collect::<Vec<_>>();
+            LinearCombination(lc)
         };
-
-        for constraint in &self.r1cs.constraints {
-            cs.enforce_constraint(
-                make_lc(&constraint.0),
-                make_lc(&constraint.1),
-                make_lc(&constraint.2),
-            )?;
+        let constraints = self
+            .r1cs
+            .constraints
+            .par_iter()
+            .map(|(a, b, c)| (make_lc(a), make_lc(b), make_lc(c)))
+            .collect::<Vec<_>>();
+        for (a, b, c) in constraints {
+            cs.enforce_r1cs_constraint(|| a, || b, || c)?;
         }
 
         Ok(())
@@ -87,7 +89,7 @@ mod tests {
     use super::*;
     use crate::{CircomBuilder, CircomConfig};
     use ark_bn254::Fr;
-    use ark_relations::r1cs::ConstraintSystem;
+    use ark_relations::gr1cs::ConstraintSystem;
 
     #[tokio::test]
     async fn satisfied() {

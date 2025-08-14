@@ -25,20 +25,18 @@
 //!  PointsC(8)
 //!  PointsH(9)
 //!  Contributions(10)
+use crate::index::NPIndex;
+use ark_bn254::{Bn254, Fq, Fq2, Fr, G1Affine, G2Affine};
 use ark_ff::{BigInteger256, PrimeField};
-use ark_relations::r1cs::ConstraintMatrices;
+use ark_groth16::{ProvingKey, VerifyingKey};
 use ark_serialize::{CanonicalDeserialize, SerializationError};
 use ark_std::log2;
 use byteorder::{LittleEndian, ReadBytesExt};
-
+use num_traits::Zero;
 use std::{
     collections::HashMap,
     io::{Read, Seek, SeekFrom},
 };
-
-use ark_bn254::{Bn254, Fq, Fq2, Fr, G1Affine, G2Affine};
-use ark_groth16::{ProvingKey, VerifyingKey};
-use num_traits::Zero;
 
 type IoResult<T> = Result<T, SerializationError>;
 
@@ -50,9 +48,7 @@ struct Section {
 }
 
 /// Reads a SnarkJS ZKey file into an Arkworks ProvingKey.
-pub fn read_zkey<R: Read + Seek>(
-    reader: &mut R,
-) -> IoResult<(ProvingKey<Bn254>, ConstraintMatrices<Fr>)> {
+pub fn read_zkey<R: Read + Seek>(reader: &mut R) -> IoResult<(ProvingKey<Bn254>, NPIndex<Fr>)> {
     let mut binfile = BinFile::new(reader)?;
     let proving_key = binfile.proving_key()?;
     let matrices = binfile.matrices()?;
@@ -147,8 +143,8 @@ impl<'a, R: Read + Seek> BinFile<'a, R> {
         self.g1_section(n_public + 1, 3)
     }
 
-    /// Returns the [`ConstraintMatrices`] corresponding to the zkey
-    pub fn matrices(&mut self) -> IoResult<ConstraintMatrices<Fr>> {
+    /// Returns the [`NPIndex`] corresponding to the zkey
+    pub fn matrices(&mut self) -> IoResult<NPIndex<Fr>> {
         let header = self.groth_header()?;
 
         let section = self.get_section(4);
@@ -178,7 +174,7 @@ impl<'a, R: Read + Seek> BinFile<'a, R> {
         let b = matrices[1].clone();
         let a_num_non_zero: usize = a.iter().map(|lc| lc.len()).sum();
         let b_num_non_zero: usize = b.iter().map(|lc| lc.len()).sum();
-        let matrices = ConstraintMatrices {
+        let matrices = NPIndex {
             num_instance_variables: header.n_public + 1,
             num_witness_variables: header.n_vars - header.n_public,
             num_constraints,
@@ -868,7 +864,6 @@ mod tests {
         let pvk = Groth16::<Bn254>::process_vk(&params.vk).unwrap();
 
         let verified = Groth16::<Bn254>::verify_with_processed_vk(&pvk, &inputs, &proof).unwrap();
-
         assert!(verified);
     }
 
@@ -900,6 +895,10 @@ mod tests {
         let full_assignment = wtns
             .calculate_witness_element::<Fr, _>(&mut store, inputs, false)
             .unwrap();
+        let matrices = [matrices.a, matrices.b, matrices.c]
+            .iter()
+            .map(|m| m.clone().into())
+            .collect::<Vec<_>>();
         let proof = Groth16::<Bn254, CircomReduction>::create_proof_with_reduction_and_matrices(
             &params,
             r,

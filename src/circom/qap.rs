@@ -1,9 +1,10 @@
 use ark_ff::PrimeField;
-use ark_groth16::r1cs_to_qap::{evaluate_constraint, LibsnarkReduction, R1CSToQAP};
+use ark_groth16::r1cs_to_qap::{LibsnarkReduction, R1CSToQAP, evaluate_constraint};
 use ark_poly::EvaluationDomain;
-use ark_relations::r1cs::{ConstraintMatrices, ConstraintSystemRef, SynthesisError};
-use ark_std::{cfg_into_iter, cfg_iter, cfg_iter_mut, vec};
-
+use ark_relations::gr1cs::ConstraintSystemRef;
+use ark_relations::gr1cs::SynthesisError;
+use ark_std::vec;
+use rayon::prelude::*;
 /// Implements the witness map used by snarkjs. The arkworks witness map calculates the
 /// coefficients of H through computing (AB-C)/Z in the evaluation domain and going back to the
 /// coefficients domain. snarkjs instead precomputes the Lagrange form of the powers of tau bases
@@ -21,7 +22,7 @@ impl R1CSToQAP for CircomReduction {
     }
 
     fn witness_map_from_matrices<F: PrimeField, D: EvaluationDomain<F>>(
-        matrices: &ConstraintMatrices<F>,
+        matrices: &[Vec<Vec<(F, usize)>>],
         num_inputs: usize,
         num_constraints: usize,
         full_assignment: &[F],
@@ -34,10 +35,11 @@ impl R1CSToQAP for CircomReduction {
         let mut a = vec![zero; domain_size];
         let mut b = vec![zero; domain_size];
 
-        cfg_iter_mut!(a[..num_constraints])
-            .zip(cfg_iter_mut!(b[..num_constraints]))
-            .zip(cfg_iter!(&matrices.a))
-            .zip(cfg_iter!(&matrices.b))
+        a[..num_constraints]
+            .par_iter_mut()
+            .zip(&mut (b[..num_constraints]))
+            .zip(&matrices[0])
+            .zip(&matrices[1])
             .for_each(|(((a, b), at_i), bt_i)| {
                 *a = evaluate_constraint(at_i, full_assignment);
                 *b = evaluate_constraint(bt_i, full_assignment);
@@ -50,7 +52,8 @@ impl R1CSToQAP for CircomReduction {
         }
 
         let mut c = vec![zero; domain_size];
-        cfg_iter_mut!(c[..num_constraints])
+        c[..num_constraints]
+            .par_iter_mut()
             .zip(&a)
             .zip(&b)
             .for_each(|((c_i, &a), &b)| {
@@ -80,7 +83,7 @@ impl R1CSToQAP for CircomReduction {
         D::distribute_powers_and_mul_by_const(&mut c, root_of_unity, F::one());
         domain.fft_in_place(&mut c);
 
-        cfg_iter_mut!(ab)
+        ab.par_iter_mut()
             .zip(c)
             .for_each(|(ab_i, c_i)| *ab_i -= &c_i);
 
@@ -94,13 +97,14 @@ impl R1CSToQAP for CircomReduction {
         delta_inverse: F,
     ) -> Result<Vec<F>, SynthesisError> {
         // the usual H query has domain-1 powers. Z has domain powers. So HZ has 2*domain-1 powers.
-        let mut scalars = cfg_into_iter!(0..2 * max_power + 1)
+        let mut scalars = (0..2 * max_power + 1)
+            .into_par_iter()
             .map(|i| delta_inverse * t.pow([i as u64]))
             .collect::<Vec<_>>();
         let domain_size = scalars.len();
         let domain = D::new(domain_size).ok_or(SynthesisError::PolynomialDegreeTooLarge)?;
         // generate the lagrange coefficients
         domain.ifft_in_place(&mut scalars);
-        Ok(cfg_into_iter!(scalars).skip(1).step_by(2).collect())
+        Ok(scalars.into_par_iter().skip(1).step_by(2).collect())
     }
 }

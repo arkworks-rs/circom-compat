@@ -67,7 +67,7 @@ impl Wasm {
     fn func(&self, name: &str) -> &Function {
         self.exports
             .get_function(name)
-            .unwrap_or_else(|_| panic!("function {} not found", name))
+            .unwrap_or_else(|_| panic!("function {name} not found"))
     }
 }
 

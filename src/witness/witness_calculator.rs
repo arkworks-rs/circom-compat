@@ -1,10 +1,9 @@
-use super::{fnv, SafeMemory, Wasm};
+use super::{SafeMemory, Wasm, fnv};
 use ark_ff::PrimeField;
 use color_eyre::Result;
 use num_bigint::BigInt;
 use num_traits::Zero;
-use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, RuntimeError, Store};
-use wasmer_wasix::WasiEnv;
+use wasmer::{Function, Instance, Memory, MemoryType, Module, RuntimeError, Store, imports};
 
 use num::ToPrimitive;
 
@@ -82,8 +81,6 @@ impl WitnessCalculator {
         };
         let instance = Instance::new(store, &module, &import_object)?;
         let exports = instance.exports.clone();
-        let mut wasi_env = WasiEnv::builder("calculateWitness").finalize(store)?;
-        wasi_env.initialize_with_memory(store, instance, Some(memory.clone()), false)?;
         let wasm = Wasm::new(exports, memory);
         Ok(wasm)
     }

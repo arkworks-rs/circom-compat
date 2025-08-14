@@ -1,4 +1,4 @@
-use ark_circom::{ethereum, CircomBuilder, CircomConfig};
+use ark_circom::{CircomBuilder, CircomConfig, ethereum};
 use ark_std::rand::thread_rng;
 use color_eyre::Result;
 
