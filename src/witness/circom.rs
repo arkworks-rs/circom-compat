@@ -1,10 +1,9 @@
 use color_eyre::Result;
-use wasmer::{Exports, Function, Memory, Store, Value};
+use wasmer::{Function, Instance, Store, Value};
 
 #[derive(Debug)]
 pub struct Wasm {
-    pub exports: Exports,
-    pub memory: Memory,
+    pub instance: Instance,
 }
 
 impl Wasm {
@@ -65,14 +64,15 @@ impl Wasm {
     }
 
     fn func(&self, name: &str) -> &Function {
-        self.exports
+        self.instance
+            .exports
             .get_function(name)
             .unwrap_or_else(|_| panic!("function {name} not found"))
     }
 }
 
 impl Wasm {
-    pub fn new(exports: Exports, memory: Memory) -> Self {
-        Self { exports, memory }
+    pub fn new(instance: Instance) -> Self {
+        Self { instance }
     }
 }

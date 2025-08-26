@@ -80,9 +80,7 @@ impl WitnessCalculator {
             }
         };
         let instance = Instance::new(store, &module, &import_object)?;
-        let exports = instance.exports.clone();
-        let wasm = Wasm::new(exports, memory);
-        Ok(wasm)
+        Ok(Wasm::new(instance))
     }
 
     pub fn new_from_wasm(store: &mut Store, instance: Wasm) -> Result<Self> {
@@ -254,8 +252,8 @@ mod tests {
         path.to_string_lossy().to_string()
     }
 
-    #[tokio::test]
-    async fn multiplier_1() {
+    #[test]
+    fn multiplier_1() {
         run_test(TestCase {
             circuit_path: root_path("test-vectors/mycircuit_js/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input1.json").as_str(),
@@ -264,8 +262,8 @@ mod tests {
         });
     }
 
-    #[tokio::test]
-    async fn multiplier_2() {
+    #[test]
+    fn multiplier_2() {
         run_test(TestCase {
             circuit_path: root_path("test-vectors/mycircuit_js/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input2.json").as_str(),
@@ -279,8 +277,8 @@ mod tests {
         });
     }
 
-    #[tokio::test]
-    async fn multiplier_3() {
+    #[test]
+    fn multiplier_3() {
         run_test(TestCase {
             circuit_path: root_path("test-vectors/mycircuit_js/mycircuit.wasm").as_str(),
             inputs_path: root_path("test-vectors/mycircuit-input3.json").as_str(),
@@ -294,8 +292,8 @@ mod tests {
         });
     }
 
-    #[tokio::test]
-    async fn safe_multipler() {
+    #[test]
+    fn safe_multipler() {
         let witness =
             std::fs::read_to_string(root_path("test-vectors/safe-circuit-witness.json")).unwrap();
         let witness: Vec<String> = serde_json::from_str(&witness).unwrap();

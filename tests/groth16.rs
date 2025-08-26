@@ -8,8 +8,8 @@ use ark_groth16::Groth16;
 
 type GrothBn = Groth16<Bn254>;
 
-#[tokio::test]
-async fn groth16_proof() -> Result<()> {
+#[test]
+fn groth16_proof() -> Result<()> {
     let cfg = CircomConfig::<Fr>::new(
         "./test-vectors/mycircuit_js/mycircuit.wasm",
         "./test-vectors/mycircuit.r1cs",
@@ -39,8 +39,8 @@ async fn groth16_proof() -> Result<()> {
     Ok(())
 }
 
-#[tokio::test]
-async fn groth16_proof_wrong_input() -> Result<()> {
+#[test]
+fn groth16_proof_wrong_input() -> Result<()> {
     let cfg = CircomConfig::<Fr>::new(
         "./test-vectors/mycircuit_js/mycircuit.wasm",
         "./test-vectors/mycircuit.r1cs",
@@ -72,8 +72,8 @@ async fn groth16_proof_wrong_input() -> Result<()> {
     Ok(())
 }
 
-#[tokio::test]
-async fn groth16_proof_circom() -> Result<()> {
+#[test]
+fn groth16_proof_circom() -> Result<()> {
     let cfg = CircomConfig::<Fr>::new(
         "test-vectors/circuit2_js/circuit2.wasm",
         "test-vectors/circuit2.r1cs",
@@ -103,8 +103,8 @@ async fn groth16_proof_circom() -> Result<()> {
     Ok(())
 }
 
-#[tokio::test]
-async fn witness_generation_circom() -> Result<()> {
+#[test]
+fn witness_generation_circom() -> Result<()> {
     let cfg = CircomConfig::<Fr>::new(
         "test-vectors/circuit2_js/circuit2.wasm",
         "test-vectors/circuit2.r1cs",
