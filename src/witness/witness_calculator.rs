@@ -77,6 +77,7 @@ impl WitnessCalculator {
                 "showSharedRWMemory" => runtime::show_memory(store),
                 "printErrorMessage" => runtime::print_error_message(store),
                 "writeBufferMessage" => runtime::write_buffer_message(store),
+                "printDebug" => runtime::print_debug(store),
             }
         };
         let instance = Instance::new(store, &module, &import_object)?;
@@ -228,6 +229,12 @@ mod runtime {
     }
 
     pub fn log_component(store: &mut Store) -> Function {
+        #[allow(unused)]
+        fn func(a: i32) {}
+        Function::new_typed(store, func)
+    }
+
+    pub fn print_debug(store: &mut Store) -> Function {
         #[allow(unused)]
         fn func(a: i32) {}
         Function::new_typed(store, func)
