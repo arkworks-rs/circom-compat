@@ -146,6 +146,19 @@ impl WitnessCalculator {
         Ok(w)
     }
 
+    pub fn calculate_wtns_bin<I: IntoIterator<Item = (String, Vec<BigInt>)>>(
+        &mut self,
+        store: &mut Store,
+        inputs: I,
+        sanity_check: bool,
+    ) -> Result<Vec<u8>> {
+        let witness = self.calculate_witness(store, inputs, sanity_check)?;
+        let mut buf = Vec::new();
+        super::wtns::write_wtns(&mut buf, &witness, &self.prime)
+            .map_err(|e| color_eyre::eyre::eyre!("failed to write wtns: {e}"))?;
+        Ok(buf)
+    }
+
     pub fn calculate_witness_element<
         F: PrimeField,
         I: IntoIterator<Item = (String, Vec<BigInt>)>,
@@ -352,5 +365,35 @@ mod tests {
         for (r, w) in res.iter().zip(case.witness) {
             assert_eq!(r, &BigInt::from_str(w).unwrap());
         }
+    }
+
+    fn parse_inputs(path: &str) -> HashMap<String, Vec<BigInt>> {
+        let inputs_str = std::fs::read_to_string(path).unwrap();
+        let inputs: HashMap<String, serde_json::Value> = serde_json::from_str(&inputs_str).unwrap();
+        inputs
+            .iter()
+            .map(|(key, value)| {
+                let res = match value {
+                    Value::String(inner) => vec![BigInt::from_str(inner).unwrap()],
+                    Value::Number(inner) => vec![BigInt::from(inner.as_u64().expect("not a u32"))],
+                    Value::Array(inner) => inner.iter().cloned().map(value_to_bigint).collect(),
+                    _ => panic!(),
+                };
+                (key.clone(), res)
+            })
+            .collect()
+    }
+
+    #[test]
+    fn calculate_wtns_bin_matches_reference() {
+        let mut store = Store::default();
+        let circuit_path = root_path("test-vectors/circuit2_js/circuit2.wasm");
+        let mut calc = WitnessCalculator::new(&mut store, &circuit_path).unwrap();
+
+        let inputs = parse_inputs(&root_path("test-vectors/mycircuit-input1.json"));
+        let wtns_bin = calc.calculate_wtns_bin(&mut store, inputs, false).unwrap();
+
+        let reference = std::fs::read(root_path("test-vectors/circuit2_js/witness.wtns")).unwrap();
+        assert_eq!(wtns_bin, reference);
     }
 }

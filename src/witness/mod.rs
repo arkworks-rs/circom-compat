@@ -7,6 +7,9 @@ pub(super) use memory::SafeMemory;
 mod circom;
 pub use circom::Wasm;
 
+pub mod wtns;
+pub use wtns::write_wtns;
+
 use fnv::FnvHasher;
 use std::hash::Hasher;
 
